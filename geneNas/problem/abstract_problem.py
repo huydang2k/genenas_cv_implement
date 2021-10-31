@@ -33,10 +33,13 @@ class Problem(ABC):
         R3 = R2 + self.hparams.max_arity
         R4 = R3 + self.hparams.num_terminal
         return R1, R2, R3, R4
-
+    
+    #Now just suitable for nlp problem,
     def get_feasible_range(self, idx) -> Tuple[int, int]:
         # Generate lower_bound, upper_bound for gene at given index of chromosome
         R1, R2, R3, R4 = self._get_chromosome_range()
+        # print('h_main', self.hparams.h_main)
+        # print('h_adf ',self.hparams.h_adf)
         # gene at index idx belong to one of the given mains
         total_main_length = self.hparams.num_main * self.hparams.main_length
         if idx < total_main_length:
@@ -57,21 +60,31 @@ class Problem(ABC):
     def parse_chromosome(self, chromosome: np.array, function_set, return_adf=True):
         # self.replace_value_with_symbol(individual)
         # print('parse chromosome')
+        print('main length', self.hparams.main_length)
+        print('num main ',self.hparams.num_main)
+        print('adf length', self.hparams.adf_length)
+        print('num adf', self.hparams.num_adf)
         total_main_length = self.hparams.num_main * self.hparams.main_length
         # print('total main length ',total_main_length)
         all_main_func = []
         adf_func = {}
 
         for i in range(self.hparams.num_adf):
+            print('adf ',i)
             start_idx = total_main_length + i * self.hparams.adf_length
             end_idx = start_idx + self.hparams.adf_length
+            print(start_idx)
+            print(end_idx)
             sub_chromosome = chromosome[start_idx:end_idx]
             adf = self.parse_tree(sub_chromosome, function_set)
             adf_func[f"a{i + 1}"] = adf
 
         for i in range(self.hparams.num_main):
+            print('main ',i)
             start_idx = i * self.hparams.main_length
             end_idx = start_idx + self.hparams.main_length
+            print(start_idx)
+            print(end_idx)
             sub_chromosome = chromosome[start_idx:end_idx]
             main_func = self.parse_tree(sub_chromosome, function_set)
             # main_func.assign_adfs(main_func.root, adf_func)

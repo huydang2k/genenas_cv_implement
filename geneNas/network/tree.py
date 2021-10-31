@@ -36,6 +36,7 @@ class Tree:
             node_type=gene_types.pop(0),
         )
 
+        #BFS here
         queue = [self.root]
         while len(queue) and len(symbols):
             parent = queue.pop(0)

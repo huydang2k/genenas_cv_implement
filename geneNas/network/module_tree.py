@@ -58,6 +58,10 @@ class ModuleNode(nn.Module):
 class ModuleTree(nn.Module):
     def __init__(self, symbols: List, arity: List, gene_types: List, function_set):
         super().__init__()
+        print('init module tree')
+        print('sysbols', symbols)
+        print('arity',arity)
+        print('gene types',gene_types)
         self.symbols = symbols
         self.arity = arity
         self.gene_types = gene_types

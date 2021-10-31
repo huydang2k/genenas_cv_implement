@@ -32,7 +32,7 @@ class Optimizer:
 
         if not os.path.exists(self.save_dict_path):
             # initialization
-            print('problem: ', type(problem))
+           
             population = np.random.randint(low=lb, high=ub, size=(self.N, self.D))
             # first evaluation
             fitness = [problem.evaluate(population[i, :]) for i in range(self.N)]
