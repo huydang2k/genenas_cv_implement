@@ -17,3 +17,4 @@ https://pytorch-lightning.readthedocs.io/en/latest/index.html?fbclid=IwAR3QeExQW
 - SepConv: https://viblo.asia/p/separable-convolutions-toward-realtime-object-detection-applications-aWj534bpK6m
 
 #
+![alt text](https://files.slack.com/files-pri/T02FUU94GUC-F02KJC49JUV/image.png)
