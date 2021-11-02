@@ -41,6 +41,8 @@ class RecurrentNet(nn.Module):
                 new_cell = deepcopy(cell)
                 new_cell.init_tree(self.hidden_size)
                 new_cell.assign_adfs(new_cell.root, adfs_copy)
+                print('new cell')
+                print(new_cell)
                 cell_list.append(new_cell)
             self.layers.append(cell_list)
             # print(self.layers[-1]._modules)

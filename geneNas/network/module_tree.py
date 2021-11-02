@@ -13,7 +13,8 @@ class ModuleNode(nn.Module):
         self,
         node,
         function_set,
-    ):
+    ):  
+        # print(function_set)
         super().__init__()
         self.node = node
         self.function_set = function_set
@@ -29,6 +30,7 @@ class ModuleNode(nn.Module):
         #     self.node_module.init_tree_module(self.node_module.root, dim)
         #     self.node_module = self.node_module.root
         else:
+            print(self.node.value)
             self.add_module(
                 "node_module", getattr(self.function_set, self.node.value)(dim)
             )
@@ -54,12 +56,12 @@ class ModuleNode(nn.Module):
             return self.node_module(input_dict)
         return self.node_module(*[child(input_dict) for child in self.child_list])
 
-
+#Tree to decode chromosome
 class ModuleTree(nn.Module):
     def __init__(self, symbols: List, arity: List, gene_types: List, function_set):
         super().__init__()
         print('init module tree')
-        print('sysbols', symbols)
+        print('symbols', symbols)
         print('arity',arity)
         print('gene types',gene_types)
         self.symbols = symbols
@@ -71,10 +73,13 @@ class ModuleTree(nn.Module):
 
     def init_tree(self, default_dim):
         print('Call init tree')
+        print(type(self.tree_structure.root))
         root = self.init_tree_module(self.tree_structure.root, default_dim)
+        print('root is ', type(root))
+        #equavilent to self.root = root
         self.add_module("root", root)
         # self.init_tree_module_list(self.root)
-
+    
     def init_tree_module(self, node, default_dim: int):
         # Postorder
         module_child_list = []

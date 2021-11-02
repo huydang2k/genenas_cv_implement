@@ -10,13 +10,13 @@ import torch.nn as nn
 from .abstract_problem import Problem
 from .function_set import NLPFunctionSet
 from .data_module import DataModule
-from .lit_recurrent import LightningRecurrent, LightningRecurrentRWE
+from .lit_recurrent import LightningRecurrentRWE,LightningRecurrent
 
 from network import RecurrentNet
 from util.logger import ChromosomeLogger
 from util.exception import NanException
 
-
+#Train and test
 class NLPProblem(Problem):
     def __init__(self, args):
         super().__init__(args)
@@ -80,7 +80,7 @@ class NLPProblem(Problem):
         return trainer
 
     def setup_model(self, chromosome):
-        print('choro setup model')
+        print('chomosome setup model')
         print(chromosome)
         self.chromsome_logger.log_chromosome(chromosome)
         mains, adfs = self.parse_chromosome(chromosome, return_adf=True)
@@ -116,7 +116,7 @@ class NLPProblem(Problem):
         print(self.chromsome_logger.logs[-1]["data"][-1])
         return self.chromsome_logger.logs[-1]["data"][-1]["metrics"][self.metric_name]
 
-
+#Just training
 class NLPProblemMultiObj(NLPProblem):
     def evaluate(self, chromosome: np.array):
         glue_pl, trainer = self.setup_model_trainer(chromosome)
@@ -141,7 +141,7 @@ class NLPProblemMultiObj(NLPProblem):
             NLPProblem.total_params(glue_pl),
         )
 
-
+#evaluateL: KFold
 class NLPProblemRWE(NLPProblem):
     def __init__(self, args):
         super().__init__(args)
@@ -208,7 +208,7 @@ class NLPProblemRWE(NLPProblem):
         glue_pl = self.setup_model(chromosome)
         return self.perform_kfold(glue_pl)
 
-
+#evaluate: KFold, return param
 class NLPProblemRWEMultiObj(NLPProblemRWE):
     def evaluate(self, chromosome: np.array):
         print('Evaluate primitive chrosome')
@@ -336,11 +336,12 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
         return avg_metrics, avg_max_metrics
 
     def setup_model(self, chromosome):
+        #main and adfs are module tree
         mains, adfs = self.parse_chromosome(chromosome, return_adf=True)
-        print(mains)
-        print(adfs)
-        print(type(mains))
-        print(type(adfs))
+        # print(mains)
+        # print(adfs)
+        # print(type(mains))
+        # print(type(adfs))
         rnn = RecurrentNet(
             mains,
             adfs,

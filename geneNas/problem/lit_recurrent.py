@@ -61,7 +61,8 @@ class LightningRecurrent(pl.LightningModule):
 
     def init_metric(self, metric):
         self.metric = metric
-
+    
+    #add  module RNN
     def init_model(self, cells, adfs):
         recurrent_model = RecurrentNet(
             cells,
