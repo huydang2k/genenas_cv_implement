@@ -82,6 +82,7 @@ class LightningRecurrent(pl.LightningModule):
         print('Foward Net')
         print('input ', inputs)
         print('hidden ',hiddens)
+        print('Hidden shape: ',hiddens.shape)
         labels = None
         if "labels" in inputs:
             labels = inputs.pop("labels")

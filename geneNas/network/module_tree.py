@@ -9,12 +9,16 @@ from typing import Optional, Dict, List
 
 
 class ModuleNode(nn.Module):
+    def __str__(self):
+        return str(self.value)
     def __init__(
         self,
         node,
         function_set,
     ):  
         # print(function_set)
+        print('Init Module node with value: ', node.value)
+    
         super().__init__()
         self.node = node
         self.function_set = function_set
@@ -30,7 +34,7 @@ class ModuleNode(nn.Module):
         #     self.node_module.init_tree_module(self.node_module.root, dim)
         #     self.node_module = self.node_module.root
         else:
-            print(self.node.value)
+            print('Call function "init_node_module" of a module node with value', self.node.value)
             self.add_module(
                 "node_module", getattr(self.function_set, self.node.value)(dim)
             )
@@ -73,7 +77,7 @@ class ModuleTree(nn.Module):
 
     def init_tree(self, default_dim):
         print('Call init tree')
-        print(type(self.tree_structure.root))
+        print(self.tree_structure.root)
         root = self.init_tree_module(self.tree_structure.root, default_dim)
         print('root is ', type(root))
         #equavilent to self.root = root
@@ -103,3 +107,5 @@ class ModuleTree(nn.Module):
 
     def forward(self, input_dict: Dict):
         return self.root(input_dict)
+    def __str__(self):
+        return str(self.symbols)

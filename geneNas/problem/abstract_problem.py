@@ -71,7 +71,7 @@ class Problem(ABC):
         # print('total main length ',total_main_length)
         all_main_func = []
         adf_func = {}
-
+        #Split into sublist, each present a main or an adf
         for i in range(self.hparams.num_adf):
             start_idx = total_main_length + i * self.hparams.adf_length
             end_idx = start_idx + self.hparams.adf_length

@@ -141,17 +141,18 @@ class NLPProblemMultiObj(NLPProblem):
             NLPProblem.total_params(glue_pl),
         )
 
-#evaluateL: KFold
+#evaluate: KFold
 class NLPProblemRWE(NLPProblem):
     def __init__(self, args):
         super().__init__(args)
         self.k_folds = self.hparams.k_folds
-
+    
+    
     def setup_model(self, chromosome):
         self.chromsome_logger.log_chromosome(chromosome)
         mains, adfs = self.parse_chromosome(chromosome, return_adf=True)
-        print(mains, type(mains))
-        print(adfs,type(adfs))
+        print('mains: ', mains, type(mains[0]))
+        print('adfs:  ', adfs,  type(adfs))
         glue_pl = LightningRecurrentRWE(
             num_labels=self.dm.num_labels,
             eval_splits=self.dm.eval_splits,
@@ -165,8 +166,10 @@ class NLPProblemRWE(NLPProblem):
     def perform_kfold(self, model):
         avg_metrics = 0
         total_time = 0
-
+        print('KFOLD  ',self.k_folds)
         trainer = self.setup_trainer()
+        print('SET up trainer-------')
+        print(type(trainer))
         model.reset_weights()
         _, train_dataloader, val_dataloader = next(self.dm.kfold(self.k_folds, None))
         self.lr_finder(model, trainer, train_dataloader, val_dataloader)
@@ -176,6 +179,8 @@ class NLPProblemRWE(NLPProblem):
             try:
                 model.reset_weights()
                 trainer = self.setup_trainer()
+                print('Set up trainer--')
+                print(type(trainer))
                 trainer.fit(
                     model,
                     train_dataloader=train_dataloader,

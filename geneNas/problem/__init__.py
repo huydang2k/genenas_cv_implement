@@ -6,8 +6,9 @@ from .nlp_problem import (
     NLPProblemRWEMultiObj,
     NLPProblemRWEMultiObjNoTrain,
 )
-from .lit_recurrent import LightningRecurrent,LightningRecurrentRWE
+
 from .function_set import NLPFunctionSet
+from .lit_recurrent import LightningRecurrent, LightningRecurrentRWE
 from .data_module import DataModule
 from .baseline import LightningBERTSeqCls, LightningBERTLSTMSeqCls, BaselineProblem
 from .best_network import BestModel, EvalBestModel

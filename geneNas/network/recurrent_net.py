@@ -35,10 +35,14 @@ class RecurrentNet(nn.Module):
             cell_list = nn.ModuleList()
             adfs_copy = deepcopy(adfs)
             for k, adf in adfs_copy.items():
+                print('Init adf')
+                print(adf)
                 adf.init_tree(self.hidden_size)
                 adfs_copy[k] = adf
             for cell in cells:
+                
                 new_cell = deepcopy(cell)
+                print(new_cell)
                 new_cell.init_tree(self.hidden_size)
                 new_cell.assign_adfs(new_cell.root, adfs_copy)
                 print('new cell')
