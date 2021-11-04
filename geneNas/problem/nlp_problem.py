@@ -95,6 +95,7 @@ class NLPProblem(Problem):
         glue_pl.init_chromosome_logger(self.chromsome_logger)
         return glue_pl
 
+    #train and test
     def evaluate(self, chromosome: np.array):
         glue_pl, trainer = self.setup_model_trainer(chromosome)
         self.lr_finder(
