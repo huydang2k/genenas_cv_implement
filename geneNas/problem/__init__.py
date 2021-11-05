@@ -13,9 +13,10 @@ from .data_module import DataModule
 from .baseline import LightningBERTSeqCls, LightningBERTLSTMSeqCls, BaselineProblem
 from .best_network import BestModel, EvalBestModel
 
-from .cv_problem import (
-    CV_Problem_MultiObjNoTrain
-)
 from .nasgep_net import NasgepNet
 from .function_set import CV_Main_FunctionSet, CV_ADF_FunctionSet
 from .cv_config import cv_problem_config
+from .cv_problem import (
+    CV_Problem_MultiObjNoTrain
+)
+

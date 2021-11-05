@@ -7,8 +7,8 @@ import datasets
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-
-from cv_config import cv_problem_config
+from typing import List, Tuple
+from .cv_config import cv_problem_config
 from network.nasgep_cell_net import NasgepCellNet
 from util.logger import ChromosomeLogger
 from util.exception import NanException

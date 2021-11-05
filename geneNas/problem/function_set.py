@@ -89,11 +89,8 @@ class CV_Main_FunctionSet:
         }
 
     @staticmethod
-    # def element_wise_sum(dim_left, dim_right):
-    #    return AddModule(dim_left, dim_right)
     def element_wise_sum(dim):
         return AddModule()
-
 
     @staticmethod
     def concat(dim):

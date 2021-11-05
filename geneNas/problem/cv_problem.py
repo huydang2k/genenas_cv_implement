@@ -1,12 +1,14 @@
 #Implement search strategy
-from nasgep_net import NasgepNet
-from abstract_problem import Problem
-from function_set import CV_Main_FunctionSet, CV_ADF_FunctionSet
-
+from .nasgep_net import NasgepNet
+from .abstract_problem import Problem
+from .function_set import CV_Main_FunctionSet, CV_ADF_FunctionSet
+from typing import List, Tuple
+import numpy as np
 class CV_Problem_MultiObjNoTrain(Problem):
     def __init__(self, args):
         super().__init__(args)
-        self.function_set = C.return_func_name()
+        self.main_function_set = CV_Main_FunctionSet.return_func_name()
+        self.adf_function_set = CV_ADF_FunctionSet.return_func_name()
         self.dm = DataModule.from_argparse_args(self.hparams)
         self.dm.prepare_data()
         self.dm.setup("fit")
@@ -17,9 +19,35 @@ class CV_Problem_MultiObjNoTrain(Problem):
         self.progress_bar = 0
         self.weights_summary = None
         self.early_stop = None
-
         self.k_folds = self.hparams.k_folds
     
+    def _get_chromosome_range(self) -> Tuple[int, int, int, int,int]:
+        R1 = len(self.main_function_set)
+        R2 = R1 + self.hparams.num_adf
+        R3 = R2 + self.hparams.num_terminal
+        R4 = R3 + len(self.adf_function_set)
+        R5 = R4 + self.hparams.max_arity
+        
+        return R1, R2, R3, R4, R5 
+    def get_feasible_range(self, idx) -> Tuple[int, int]:
+        # Generate lower_bound, upper_bound for gene at given index of chromosome
+        R1, R2, R3, R4, R5 = self._get_chromosome_range()
+        # gene at index idx belong to one of the given mains
+        total_main_length = self.hparams.num_main * self.hparams.main_length
+        if idx < total_main_length:
+            if idx % self.hparams.main_length < self.hparams.h_main:
+                # Head of main: adf_set and function_set
+                return 0, R2
+            else:
+                # Tail of main: terminal_set
+                return R2, R3
+        if (idx - total_main_length) % self.hparams.adf_length < self.hparams.h_adf:
+            # Head of ADF: function_set
+            return R3, R4
+        else:
+            # Tail of ADF: adf_terminal_set
+            return R4, R5
+
     def parse_chromosome(
         self, chromosome: np.array, main_function_set=CV_Main_FunctionSet,adf_function_set = CV_ADF_FunctionSet, return_adf=False
     ):
@@ -62,6 +90,38 @@ class CV_Problem_MultiObjNoTrain(Problem):
             return all_main_func, adf_func
         else:
             return all_main_func
+
+    def replace_value_with_symbol(
+        self, chromosome: np.array
+    ) -> Tuple[List, List, List]:
+        # create GEP symbols from integer chromosome
+        symbols = []
+        arity = []
+        gene_types = []
+        R1, R2, R3, R4, R5 = self._get_chromosome_range()
+        for i, value in enumerate(chromosome):
+            value = int(value)
+            if value >= R4: #adf input
+                symbols.append(self.adf_terminal_name[value - R4])
+                arity.append(0)
+                gene_types.append(GeneType.ADF_TERMINAL)
+            elif value >= R3: #adf function
+                symbols.append(self.adf_function_set[value]["name"])
+                arity.append(self.adf_function_set[value]["arity"])
+                gene_types.append(GeneType.FUNCTION)
+            elif value >= R2: #main variables
+                symbols.append(self.terminal_name[value - R2])
+                arity.append(0)
+                gene_types.append(GeneType.TERMINAL)
+            elif value >= R1: #adf name
+                symbols.append(self.adf_name[value - R1])
+                arity.append(self.hparams.max_arity)
+                gene_types.append(GeneType.ADF)
+            else: #main functions
+                symbols.append(self.main_function_set[value]["name"])
+                arity.append(self.main_function_set[value]["arity"])
+                gene_types.append(GeneType.FUNCTION)
+        return symbols, arity, gene_types
 
     @staticmethod
     def total_params(model):
