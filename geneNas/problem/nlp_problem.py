@@ -152,8 +152,6 @@ class NLPProblemRWE(NLPProblem):
     def setup_model(self, chromosome):
         self.chromsome_logger.log_chromosome(chromosome)
         mains, adfs = self.parse_chromosome(chromosome, return_adf=True)
-        print('mains: ', mains, type(mains[0]))
-        print('adfs:  ', adfs,  type(adfs))
         glue_pl = LightningRecurrentRWE(
             num_labels=self.dm.num_labels,
             eval_splits=self.dm.eval_splits,
@@ -229,6 +227,10 @@ class NLPProblemRWEMultiObj(NLPProblemRWE):
 class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
     def __init__(self, args):
         super().__init__(args)
+        print('metric')
+        print(self.dm.metric)
+        print(type(self.dm.metric))
+        input()
         self.metric = self.dm.metric
         # self.weight_values = [-2, -1, -0.5, 0.5, 1, 2]
         self.weight_values = [0.5, 1, 2, 3]
@@ -242,8 +244,8 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
         #     args.hidden_size, args.dropout, self.dm.num_labels
         # )
 
-        self.embed.cuda()
-        self.cls_head.cuda()
+        # self.embed.cuda()
+        # self.cls_head.cuda()
 
         self.embed.eval()
         self.cls_head.eval()
@@ -262,9 +264,10 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
         outputs = []
         encounter_nan = False
         for batch in val_dataloader:
-
+            print(type(batch))
+            print(batch)
             labels = batch.pop("labels")
-            batch = {k: v.cuda() for k, v in batch.items()}
+            # batch = {k: v.cuda() for k, v in batch.items()}
 
             with torch.cuda.amp.autocast():
                 x = self.embed(**batch)[0]
@@ -272,7 +275,10 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
                     print(f"NaN after embeds")
                     encounter_nan = True
                     break
-
+                print('af ter embed')
+                print(type(x))
+                print(x)
+                # input()
                 x, _ = model(x)
                 if x.isnan().any():
                     print(f"NaN after recurrent")
@@ -320,6 +326,7 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
         total_time = 0
 
         for fold, _, val_dataloader in self.dm.kfold(self.k_folds, None):
+            print(type(val_dataloader))
             start = time.time()
             metrics = [
                 self.run_inference(model, wval, val_dataloader)
@@ -353,7 +360,8 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
             adfs,
             self.embed_config.hidden_size,
             self.hparams.hidden_size,
-            num_layers=self.hparams.num_layers,
+            num_layers=self.hparams.num_layers
+            ,
             batch_first=self.hparams.batch_first,
             bidirection=self.hparams.bidirection,
         )
@@ -364,7 +372,7 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
         symbols, _, _ = self.replace_value_with_symbol(chromosome)
         print(f"CHROMOSOME: {symbols}")
         rnn = self.setup_model(chromosome)
-        rnn.cuda()
+        # rnn.cuda()
         rnn.eval()
         avg_metrics, avg_max_metrics = self.perform_kfold(rnn)
         return avg_metrics, avg_max_metrics, NLPProblem.total_params(rnn)

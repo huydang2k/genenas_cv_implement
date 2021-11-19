@@ -4,27 +4,31 @@ from .abstract_problem import Problem
 from .function_set import CV_Main_FunctionSet, CV_ADF_FunctionSet
 from typing import List, Tuple
 import numpy as np
-from .data_module import DataModule
+from .cv_data_module import CV_DataModule
 from util.logger import ChromosomeLogger
 from evolution import GeneType
-
+import time
+import torch
+import torch.nn as nn
 class CV_Problem_MultiObjNoTrain(Problem):
     def __init__(self, args):
         super().__init__(args)
         self.main_function_set = CV_Main_FunctionSet.return_func_name()
         self.adf_function_set = CV_ADF_FunctionSet.return_func_name()
-        self.dm = DataModule.from_argparse_args(self.hparams)
+        self.dm = CV_DataModule.from_argparse_args(self.hparams)
         self.dm.prepare_data()
         self.dm.setup("fit")
 
         self.chromsome_logger = ChromosomeLogger()
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
-
+        
         self.progress_bar = 0
         self.weights_summary = None
         self.early_stop = None
         self.k_folds = self.hparams.k_folds
-    
+        
+        self.weight_values = [0.5, 1, 2, 3]
+        self.metric = self.dm.metric
     def _get_chromosome_range(self) -> Tuple[int, int, int, int,int]:
         R1 = len(self.main_function_set)
         R2 = R1 + self.hparams.num_adf
@@ -57,12 +61,12 @@ class CV_Problem_MultiObjNoTrain(Problem):
     ):
         # self.replace_value_with_symbol(individual)
         # print('parse chromosome')
-        print('INFOR: num main {}, main length {}, adf length {}, num adf {}'.format(
-            self.hparams.num_main,
-            self.hparams.main_length,
-            self.hparams.num_adf,
-            self.hparams.adf_length
-        ))
+        # print('INFOR: num main {}, main length {}, adf length {}, num adf {}'.format(
+        #     self.hparams.num_main,
+        #     self.hparams.main_length,
+        #     self.hparams.num_adf,
+        #     self.hparams.adf_length
+        # ))
         
         total_main_length = self.hparams.num_main * self.hparams.main_length
         # print('total main length ',total_main_length)
@@ -72,21 +76,21 @@ class CV_Problem_MultiObjNoTrain(Problem):
         for i in range(self.hparams.num_adf):
             start_idx = total_main_length + i * self.hparams.adf_length
             end_idx = start_idx + self.hparams.adf_length
-            print('Decode adf ',i)
-            print(chromosome[start_idx:end_idx])
+            # print('Decode adf ',i)
+            # print(chromosome[start_idx:end_idx])
             sub_chromosome = chromosome[start_idx:end_idx]
             adf = self.parse_tree(sub_chromosome, adf_function_set)
-            print(type(adf))
+            
             adf_func[f"a{i + 1}"] = adf
 
         for i in range(self.hparams.num_main):
             start_idx = i * self.hparams.main_length
             end_idx = start_idx + self.hparams.main_length
-            print('Decode main ',i)
-            print(chromosome[start_idx:end_idx])
+            # print('Decode main ',i)
+            # print(chromosome[start_idx:end_idx])
             sub_chromosome = chromosome[start_idx:end_idx]
             main_func = self.parse_tree(sub_chromosome, main_function_set)
-            print(type(main_func))
+            
             # main_func.assign_adfs(main_func.root, adf_func)
             all_main_func.append(main_func)
 
@@ -138,7 +142,13 @@ class CV_Problem_MultiObjNoTrain(Problem):
         new_lr = lr_finder.suggestion()
         model.hparams.lr = new_lr
         print(f"New optimal lr: {new_lr}")
-
+    def apply_weight(self, model, value):
+        sampler = torch.distributions.uniform.Uniform(low=-value, high=value)
+        with torch.no_grad():
+            for name, param in model.named_parameters():
+                new_param = sampler.sample(param.shape)
+                param.copy_(new_param)
+        return
     def setup_model_trainer(self, chromosome: np.array):
         glue_pl = self.setup_model(chromosome)
         trainer = self.setup_trainer()
@@ -170,8 +180,7 @@ class CV_Problem_MultiObjNoTrain(Problem):
     def setup_model(self, chromosome):
         self.chromsome_logger.log_chromosome(chromosome)
         mains, adfs = self.parse_chromosome(chromosome, return_adf=True)
-        print('mains: ', mains, type(mains[0]))
-        print('adfs:  ', adfs,  type(adfs))
+        
         glue_pl = NasgepNet(
             num_labels=self.dm.num_labels,
             eval_splits=self.dm.eval_splits,
@@ -181,56 +190,104 @@ class CV_Problem_MultiObjNoTrain(Problem):
         glue_pl.init_model(mains, adfs)
         glue_pl.init_chromosome_logger(self.chromsome_logger)
         return glue_pl
+    
+    def run_inference(self, model, weight_value, val_dataloader):
+        self.apply_weight(model, weight_value)
+        
+        outputs = []
+        encounter_nan = False
+        for batch in val_dataloader:
+            
+            # print(batch)
+
+            labels = batch[1]
+            
+            
+            # batch = {k: v.cuda() for k, v in batch.items()}
+            # batch =  batch[0].cuda()
+            batch =  batch[0]['feature_map'] #note
+            with torch.cuda.amp.autocast():
+                
+                logits = model(batch)
+                if logits.isnan().any():
+                    print(f"NaN after NasgepNet")
+                    encounter_nan = True
+                    break
+
+
+                if self.dm.num_labels == 1:
+                    #  We are doing regression
+                    loss_fct = nn.MSELoss()
+                    loss = loss_fct(logits.view(-1), labels.view(-1))
+                else:
+                    loss_fct = nn.CrossEntropyLoss()
+                    loss = loss_fct(logits.view(-1, self.dm.num_labels), labels.view(-1))
+
+                if logits.isnan().any():
+                    print(f"NaN after CLS head")
+                    encounter_nan = True
+                    break
+
+            if self.dm.num_labels > 1:
+                preds = torch.argmax(logits, dim=1)
+            else:
+                preds = logits.squeeze()
+            preds = preds.detach().cpu()
+            # batch = {k: v.detach().cpu() for k, v in batch.items()}
+
+            outputs.append({"preds": preds, "labels": labels})
+
+        if not encounter_nan:
+            preds = torch.cat([x["preds"] for x in outputs]).detach().cpu().numpy()
+            labels = torch.cat([x["labels"] for x in outputs]).detach().cpu().numpy()
+            if np.all(preds == preds[0]):
+                metrics = 0
+            else:
+                print(np.unique(preds, return_counts=True))
+                print(np.unique(labels, return_counts=True))
+                metrics = self.metric.compute(predictions=preds, references=labels)[
+                    self.metric_name
+                ]
+        else:
+            metrics = 0
+        return metrics
+
 
     def perform_kfold(self, model):
         avg_metrics = 0
+        avg_max_metrics = 0
         total_time = 0
-        print('KFOLD  ',self.k_folds)
-        trainer = self.setup_trainer()
-        print('SET up trainer-------')
-        print(type(trainer))
-        model.reset_weights()
-        _, train_dataloader, val_dataloader = next(self.dm.kfold(self.k_folds, None))
-        self.lr_finder(model, trainer, train_dataloader, val_dataloader)
 
-        for fold, train_dataloader, val_dataloader in self.dm.kfold(self.k_folds, None):
+        for fold, _, val_dataloader in self.dm.kfold(self.k_folds, None):
+            print(type(val_dataloader))
             start = time.time()
-            try:
-                model.reset_weights()
-                trainer = self.setup_trainer()
-                print('Set up trainer--')
-                print(type(trainer))
-                trainer.fit(
-                    model,
-                    train_dataloader=train_dataloader,
-                    val_dataloaders=val_dataloader,
-                )
-                metrics = self.chromsome_logger.logs[-1]["data"][-1]["metrics"][
-                    self.metric_name
-                ]
-            except NanException as e:
-                print(e)
-                log_data = {
-                    f"val_loss": 0.0,
-                    "metrics": {self.metric_name: 0.0},
-                    "epoch": -1,
-                }
-                metrics = log_data["metrics"][self.metric_name]
+            metrics = [
+                self.run_inference(model, wval, val_dataloader)
+                for wval in self.weight_values
+            ]
             end = time.time()
-            avg_metrics += metrics
+            avg_metrics += np.mean(metrics)
+            avg_max_metrics += np.max(metrics)
             total_time += end - start
-            print(f"FOLD {fold}: {self.metric_name} {metrics} ; Time {end - start}")
+            print(
+                f"FOLD {fold}: {self.metric_name} {np.mean(metrics)} {np.max(metrics)} ; Time {end - start}"
+            )
 
         # result = trainer.test()
         avg_metrics = avg_metrics / self.k_folds
-        print(f"FOLD AVG: {self.metric_name} {avg_metrics} ; Time {total_time}")
-        return avg_metrics
+        avg_max_metrics = avg_max_metrics / self.k_folds
+        print(
+            f"FOLD AVG: {self.metric_name} {avg_metrics} {avg_max_metrics} ; Time {total_time}"
+        )
+        return avg_metrics, avg_max_metrics
 
     def evaluate(self, chromosome: np.array):
+        #fix here
+        # chromosome = np.array([3 ,2 ,0 ,1 ,3 ,0 ,5 ,6 ,6 ,5 ,6 ,5 ,6 ,1 ,0 ,3 ,3 ,1 ,0 ,5 ,5 ,6 ,4 ,5 ,4 ,6 ,9 ,19 ,19 ,16 ,21 ,22 ,21 ,22 ,21 ,7 ,7 ,20 ,8 ,21 ,21 ,21 ,22 ,21])
         print('Evaluate primitive chrosome')
         print(chromosome)
+        
         symbols, _, _ = self.replace_value_with_symbol(chromosome)
         print(f"CHROMOSOME: {symbols}")
-        print('Set up model')
-        glue_pl = self.setup_model(chromosome)
-        return self.perform_kfold(glue_pl)
+        nasgep_model = self.setup_model(chromosome)
+        return self.perform_kfold(nasgep_model)

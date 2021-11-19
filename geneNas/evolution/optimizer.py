@@ -16,14 +16,13 @@ class Optimizer:
         self.save_dict_path = args.save_dict_path
 
     def ga(self, problem, return_best=True):
-        print('Into ga')
         taskname = problem.hparams.task_name
         #lb, ub is 2 list with same length as chromosome (D), indicating value range of each node 
         # in chromosome
-        print('Range tuple',problem._get_chromosome_range())
+        # print('Range tuple',problem._get_chromosome_range())
         lb, ub = list(zip(*[problem.get_feasible_range(i) for i in range(self.D)]))
-        print('lb ',lb)
-        print('ub ',ub)
+        # print('lb ',lb)
+        # print('ub ',ub)
         self.operator.lb = lb
         self.operator.ub = ub
 
@@ -35,6 +34,7 @@ class Optimizer:
             # initialization
            
             population = np.random.randint(low=lb, high=ub, size=(self.N, self.D))
+         
             # first evaluation
             fitness = [problem.evaluate(population[i, :]) for i in range(self.N)]
             start_generation = 1
@@ -47,7 +47,7 @@ class Optimizer:
             print(
                 f"LOAD FROM CHECKPOINT {self.save_dict_path} AT GENERATION {start_generation}"
             )
-
+        
         for t in range(start_generation, self.T):
             print(f"\nGENERATION: {t}\n")
             # reproduction

@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+from typing import List
 class AbstractFunctionset:
     specific_set = [] 
     function_set_dictionary = { 
@@ -48,27 +48,28 @@ class AbstractFunctionset:
     def concat(dim):
         return ConcatModule(dim)
     @staticmethod
-    def point_wise_conv(dim,name,is_reduction):
-        cin = cout = dim[2]
+    def point_wise_conv(dim,name,is_reduction = False):
+        cin = cout = dim[0]
         return Point_Wise_Conv(cin,cout)
     @staticmethod
     def separable_depth_wise_conv(dim, name = 'separable_depth_wise_conv_3x3',is_reduction=False):
-        cin = cout = dim[2]
-        kerner_size = (name.split('_')[-1].split('x')[0],name.split('_')[-1].split('x')[1])
+        cin = cout = dim[0]
+        kernel_size = (int(name.split('_')[-1].split('x')[0]),int(name.split('_')[-1].split('x')[1]))
         stride = 1
         if is_reduction:
+            # input()
             stride = 2
-        padding = (int((kerner_size[0] - 1)/2), int((kerner_size[1] - 1)/2))
-        return Separable_Depth_Wise__Conv(cin,cout, kerner_size,stride = stride, padding = padding)
+        padding = (int((kernel_size[0] - 1)/2), int((kernel_size[1] - 1)/2))
+        return Separable_Depth_Wise__Conv(cin,cout, kernel_size,stride = stride, padding = padding)
     @staticmethod
     def depth_wise_conv(dim, name = 'depth_wise_conv_3x3',is_reduction=False):
-        cin = cout = dim[2]
-        kerner_size = (name.split('_')[-1].split('x')[0],name.split('_')[-1].split('x')[1])
+        cin = cout = dim[0]
+        kernel_size = (int(name.split('_')[-1].split('x')[0]),int(name.split('_')[-1].split('x')[1]))
         stride = 1
         if is_reduction:
             stride = 2
-        padding = (int((kerner_size[0] - 1)/2), int((kerner_size[1] - 1)/2))
-        return Depth_Wise__Conv(cin,cout, kerner_size,stride = stride, padding = padding)
+        padding = (int((kernel_size[0] - 1)/2), int((kernel_size[1] - 1)/2))
+        return Depth_Wise__Conv(cin,cout, kernel_size,stride = stride, padding = padding)
 
 class NLPFunctionSet:
     @staticmethod
@@ -145,34 +146,70 @@ class CV_Main_FunctionSet(AbstractFunctionset):
     specific_set = ['element_wise_sum','concat']
 
 class CV_ADF_FunctionSet(AbstractFunctionset):
-    specific_set = ['point_wise_conv','depth_wise_conv_3x3','depth_wise_conv_5x5','depth_wise_conv_3x5','depth_wise_conv_5x3','depth_wise_conv_1x7','depth_wise_conv_7x1','separable_depth_wise_conv_3x3','separable_depth_wise_conv_5x5','separable_depth_wise_conv_3x5','separable_depth_wise_conv_5x3','separable_depth_wise_conv_1x7','separable_depth_wise_conv_7x1']
+    specific_set = ['element_wise_sum','point_wise_conv','depth_wise_conv_3x3','depth_wise_conv_5x5','depth_wise_conv_3x5','depth_wise_conv_5x3','depth_wise_conv_1x7','depth_wise_conv_7x1','separable_depth_wise_conv_3x3','separable_depth_wise_conv_5x5','separable_depth_wise_conv_3x5','separable_depth_wise_conv_5x3','separable_depth_wise_conv_1x7','separable_depth_wise_conv_7x1']
 
 class Point_Wise_Conv(nn.Module):
     def __init__(self, cin, cout):
         super().__init__()
+        self.cin = cin
+        self.cout = cout
         self.pwc = nn.Conv2d(cin, cout, kernel_size=1)
 
+    """
+    Parametter 'reduction_pos_list' just for convention. Just ignore because Conv has 1 input
+    """
+    def make_reduction(self,reduction_pos_list : List[bool]):
+        del self.pwc
+        self.pwc = nn.Conv2d(self.cin, self.cout, kernel_size=1,stride = 2)
     def forward(self, x):
         x = self.pwc(x)
         return x
 
 class Depth_Wise__Conv(nn.Module):
-    def __init__(self, cin, cout,kerner_size,stride = 1, padding = 0):
+    def __init__(self, cin, cout,kernel_size,stride = 1, padding = 0):
         super(Depth_Wise__Conv, self).__init__()
-        self.depthwise = nn.Conv2d(cin, cin, kernel_size=kerner_size, padding=padding, stride =stride, groups=cin)
-     
+        self.cin = cin
+        self.cout = cout
+        self.kernel_size = kernel_size
+        self.padding = padding
+        self.stride = stride
+        self.depthwise = nn.Conv2d(cin, cin, kernel_size=kernel_size, padding=padding, stride =stride, groups=cin)
+
+    """
+    Parametter 'reduction_pos_list' just for convention. Just ignore because Conv has 1 input
+    """
+    def make_reduction(self,reduction_pos_list : List[bool]):
+        del self.depthwise
+        self.depthwise = nn.Conv2d(self.cin, self.cin, kernel_size= self.kernel_size, padding=self.padding, stride =2, groups=self.cin)
     def forward(self, x):
         out = self.depthwise(x)
+
+        # input()
         return out
 
 class Separable_Depth_Wise__Conv(nn.Module):
     def __init__(self, cin, cout,kernel_size,stride = 1, padding = 0):
+        self.cin = cin
+        self.cout = cout
+        self.kernel_size = kernel_size
+        self.padding = padding
+        self.stride = stride
         super(Separable_Depth_Wise__Conv, self).__init__()
         self.depthwise = nn.Conv2d(cin, cin, kernel_size=kernel_size, padding=padding, stride =stride,groups=cin)
         self.pointwise = nn.Conv2d(cin, cout, kernel_size=1)
+    
+    """
+    Parametter 'reduction_pos_list' just for convention. Just ignore because Conv has 1 input
+    """
+    def make_reduction(self,reduction_pos_list : List[bool]):
+        del self.depthwise
+        self.depthwise = nn.Conv2d(self.cin, self.cin, kernel_size= self.kernel_size, padding=self.padding, stride =2, groups=self.cin)
 
     def forward(self, x):
         out = self.depthwise(x)
+        
+        
+        # input()
         out = self.pointwise(out)
         return out
 
@@ -193,13 +230,23 @@ class AddModule(nn.Module):
     def __init__(self):
         super().__init__()
         # self.reshape = ReshapeModule(dim_left, dim_right)
+        self.is_cv_problem = False    
 
+        #if is_cv_problem
+        self.reduction_pos_list = [False,False]
+    def make_reduction(self,reduction_pos_list : List[bool]):
+        self.is_cv_problem = True
+        self.reduction_pos_list = reduction_pos_list
+        self.avg_stride2 = nn.AvgPool2d(kernel_size = 2, stride = 2)
     def forward(self, a, b):
         # a, b = self.reshape(a, b)
+        if self.is_cv_problem:
+            if self.reduction_pos_list[0]:
+                a = self.avg_stride2(a)
+            if self.reduction_pos_list[1]:
+                b = self.avg_stride2(b)  
         if a.shape != b.shape:
             print("Shape mismatch")
-            print(a.shape)
-            print(b.shape)
         x = torch.add(a, b)
         return x
 
@@ -215,14 +262,43 @@ class ProductModule(nn.Module):
         return x
 
 
+
+
 class ConcatModule(nn.Module):
     def __init__(self, dim):
         super().__init__()
         # self.reshape = ReshapeModule(dim_in, dim_out)
-        self.reshape = ReshapeModule(2 * dim, dim)
+        # print('create concat')
+        # print('dim')
+        # print(2 * dim)
+        #if nlp problem (dim is just an interger)
+        if isinstance(dim,int):
+            self.reshape = ReshapeModule(2 * dim, dim)
+            self.is_cv_problem = False 
+        #if cv problem (dim is a tuple of [cin, w, h])
+        else: 
+            self.reshape = Point_Wise_Conv(dim[0] * 2, dim[0])
+            self.is_cv_problem = True   
 
+        #if is_cv_problem
+        self.reduction_pos_list = [False,False]
+    def make_reduction(self,reduction_pos_list : List[bool]):
+        self.is_cv_problem = True
+        self.reduction_pos_list = reduction_pos_list
+        self.avg_stride2 = nn.AvgPool2d(kernel_size = 2, stride = 2)
     def forward(self, a, b):
-        out = torch.cat([a, b], axis=-1)
+        
+        #cv problem
+        if self.is_cv_problem:
+            if self.reduction_pos_list[0]:
+                a = self.avg_stride2(a)
+            if self.reduction_pos_list[1]:
+                b = self.avg_stride2(b)
+            
+            out = torch.cat([a, b], dim=1)
+        #nlp problem
+        else:
+            out = torch.cat([a, b], axis=-1)
         out = self.reshape(out)
         return out
 

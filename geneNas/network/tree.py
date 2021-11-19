@@ -19,6 +19,7 @@ class Node:
 
 class Tree:
     def __init__(self, symbols: List, arity: List, gene_types: List):
+
         self.symbols = symbols
         self.arity = arity
         self.gene_types = gene_types
@@ -53,5 +54,6 @@ class Tree:
                 )
                 parent.child_list.append(node)
                 queue.append(node)
+        
     def __str__(self):
         return str(self.symbols)

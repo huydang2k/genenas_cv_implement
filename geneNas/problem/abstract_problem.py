@@ -60,12 +60,13 @@ class Problem(ABC):
     def parse_chromosome(self, chromosome: np.array, function_set, return_adf=True):
         # self.replace_value_with_symbol(individual)
         # print('parse chromosome')
-        print('INFOR: num main {}, main length {}, adf length {}, num adf {}'.format(
-            self.hparams.num_main,
-            self.hparams.main_length,
-            self.hparams.num_adf,
-            self.hparams.adf_length
-        ))
+        # print("Parssing  chromosome")
+        # print('INFOR: num main {}, main length {}, adf length {}, num adf {}'.format(
+        #     self.hparams.num_main,
+        #     self.hparams.main_length,
+        #     self.hparams.num_adf,
+        #     self.hparams.adf_length
+        # ))
         
         total_main_length = self.hparams.num_main * self.hparams.main_length
         # print('total main length ',total_main_length)
@@ -75,21 +76,19 @@ class Problem(ABC):
         for i in range(self.hparams.num_adf):
             start_idx = total_main_length + i * self.hparams.adf_length
             end_idx = start_idx + self.hparams.adf_length
-            print('Decode adf ',i)
-            print(chromosome[start_idx:end_idx])
+            # print('Decode adf ',i)
+            # print(chromosome[start_idx:end_idx])
             sub_chromosome = chromosome[start_idx:end_idx]
             adf = self.parse_tree(sub_chromosome, function_set)
-            print(type(adf))
             adf_func[f"a{i + 1}"] = adf
 
         for i in range(self.hparams.num_main):
             start_idx = i * self.hparams.main_length
             end_idx = start_idx + self.hparams.main_length
-            print('Decode main ',i)
-            print(chromosome[start_idx:end_idx])
+            # print('Decode main ',i)
+            # print(chromosome[start_idx:end_idx])
             sub_chromosome = chromosome[start_idx:end_idx]
             main_func = self.parse_tree(sub_chromosome, function_set)
-            print(type(main_func))
             # main_func.assign_adfs(main_func.root, adf_func)
             all_main_func.append(main_func)
 
@@ -142,11 +141,14 @@ class Problem(ABC):
         return [f"t{i + 1}" for i in range(self.hparams.max_arity)]
 
     def _create_terminal_set_names(self):
+        print('Num ter')
+        print(self.hparams.num_terminal)
         return [f"x{i + 1}" for i in range(self.hparams.num_terminal)]
 
     @staticmethod
     def add_arguments(parent_parser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
+        # parser.add_argument("--task_name", default='cifar10', type=str)
         parser.add_argument("--num_main", default=2, type=int)
         parser.add_argument("--num_adf", default=2, type=int)
         parser.add_argument("--h_main", default=4, type=int)

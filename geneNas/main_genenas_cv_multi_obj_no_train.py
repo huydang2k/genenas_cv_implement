@@ -1,7 +1,7 @@
 import argparse
 import pytorch_lightning as pl
 
-from problem import NLPProblemRWEMultiObjNoTrain, DataModule, LightningRecurrentRWE
+from problem import NLPProblemRWEMultiObjNoTrain, CV_DataModule, LightningRecurrentRWE
 from problem import CV_Problem_MultiObjNoTrain, NasgepNet
 from evolution import MultiObjectiveOptimizer
 
@@ -14,8 +14,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser = CV_Problem_MultiObjNoTrain.add_arguments(parser)
     parser = pl.Trainer.add_argparse_args(parser)
-    parser = DataModule.add_argparse_args(parser)
-    parser = DataModule.add_cache_arguments(parser)
+    parser = CV_DataModule.add_argparse_args(parser)
+    parser = CV_DataModule.add_cache_arguments(parser)
     parser = NasgepNet.add_model_specific_args(parser)
     parser = NasgepNet.add_learning_specific_args(parser)
     parser = MultiObjectiveOptimizer.add_optimizer_specific_args(parser)
@@ -40,7 +40,7 @@ def parse_args():
 def main():
     # get args
     args = parse_args()
-
+    # print(args)
     # solve source problems
     problem = CV_Problem_MultiObjNoTrain(args)
 

@@ -6,7 +6,7 @@ from .nlp_problem import (
     NLPProblemRWEMultiObj,
     NLPProblemRWEMultiObjNoTrain,
 )
-
+from .cv_data_module import CV_DataModule
 from .function_set import NLPFunctionSet
 from .lit_recurrent import LightningRecurrent, LightningRecurrentRWE
 from .data_module import DataModule

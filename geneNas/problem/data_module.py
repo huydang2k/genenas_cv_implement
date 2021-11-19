@@ -170,6 +170,8 @@ class DataModule(pl.LightningDataModule):
 
     @property
     def train_dataset(self):
+        print('Self dataaset')
+        print(type(self.dataset["train"]))
         return self.dataset["train"]
 
     @property
@@ -215,9 +217,20 @@ class DataModule(pl.LightningDataModule):
         for fold, (train_ids, val_ids) in enumerate(kfold.split(self.train_dataset)):
             train_ids = train_ids.tolist()
             val_ids = val_ids.tolist()
-
+            
             train_subsampler = SubsetRandomSampler(train_ids)
             val_subsampler = SubsetRandomSampler(val_ids)
+            print('call k fold')
+            # a = DataLoader(
+            #     self.train_dataset,
+            #     batch_size=self.train_batch_size,
+            #     sampler=train_subsampler,
+            #     num_workers=self.num_workers,
+            #     pin_memory=self.pin_memory,
+            # )
+            # for  v in a:
+            #     print(v)
+            #     z = input()
             yield fold, DataLoader(
                 self.train_dataset,
                 batch_size=self.train_batch_size,

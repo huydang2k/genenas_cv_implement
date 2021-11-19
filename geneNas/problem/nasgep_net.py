@@ -15,11 +15,13 @@ from util.exception import NanException
 
 class NasgepNet(pl.LightningModule):
     def __init__(
-        
         self,
         num_labels: int,
         dropout: float = 0.1,
         learning_rate: float = 2e-5,
+        hidden_shape: List = [3,32,32],
+        N: int = 1,
+        input_size: int = 32,
         epsilon: float = 1e-8,
         warmup_steps: int = 0,
         weight_decay: float = 0.0,
@@ -30,27 +32,31 @@ class NasgepNet(pl.LightningModule):
         use_simple_cls: bool = True,
         **kwargs,
     ):
-        print('init NasgepNet')
+        
         super().__init__()
-        self.input_size = cv_problem_config['image_size']
-        self.N = cv_problem_config['N']
+
+        self.input_size = input_size
+        self.hidden_shape = hidden_shape
+        self.N = N
         self.save_hyperparameters()
         #
-        self.conv3x3 = nn.Conv2d(in_channels=3, out_channels=cv_problem_config['first_conv_3x3_number_kernel'], kernel_size=3)
-        self.batch_norm = nn.BatchNorm2d(int(cv_problem_config['first_conv_3x3_number_kernel']  / 4))
+        padding_for_conv_3x3 = (1,1)
+        post_nasgep_cell_output_channel = self.hidden_shape[0]
+
+        self.conv3x3 = nn.Conv2d(in_channels=3, out_channels=self.hidden_shape[0], kernel_size=3,padding = padding_for_conv_3x3)
+        self.batch_norm = nn.BatchNorm2d(post_nasgep_cell_output_channel)
         self.relu = nn.ReLU()
-        feature_map_dim = cv_problem_config['image_size'] - 3 + 1
-        self.global_avg_pool = nn.AvgPool2d(feature_map_dim)
+        
+        self.global_avg_pool = nn.AvgPool2d(kernel_size = int(self.hidden_shape[1]/4))
         
         self.num_labels = num_labels
         self.num_val_dataloader = num_val_dataloader
         self.cell_dropout = nn.Dropout(p=dropout)
-
-        hidden_size = cv_problem_config['first_conv_3x3_number_kernel']  / 4
-        if not use_simple_cls:
-            self.cls_head = ClsHead(hidden_size, dropout, num_labels)
-        else:
-            self.cls_head = SimpleClsHead(hidden_size, dropout, num_labels)
+        self.fc = nn.Linear(self.hidden_shape[0],num_labels)
+        # if not use_simple_cls:
+        #     self.cls_head = ClsHead(post_nasgep_cell_output_channel, dropout, num_labels)
+        # else:
+        #     self.cls_head = SimpleClsHead(post_nasgep_cell_output_channel, dropout, num_labels)
 
         self.chromosome_logger: Optional[ChromosomeLogger] = None
         self.metric = None
@@ -63,11 +69,8 @@ class NasgepNet(pl.LightningModule):
         nasgepcell_net = NasgepCellNet(
             cells,
             adfs,
-            self.config.hidden_size,
-            self.hparams.hidden_size,
-            num_layers=self.hparams.num_layers,
-            batch_first=self.hparams.batch_first,
-            bidirection=self.hparams.bidirection,
+            self.hidden_shape,
+            self.N
         )
         for param in nasgepcell_net.parameters():
             param.requires_grad = False
@@ -95,42 +98,29 @@ class NasgepNet(pl.LightningModule):
     def init_chromosome_logger(self, logger: ChromosomeLogger):
         self.chromosome_logger = logger
 
-    def forward(self, hiddens, **inputs):
-        print('Foward Net')
-        print('input ', inputs)
-        print('hidden ',hiddens)
-        print('Hidden shape: ',hiddens.shape)
-        labels = None
-        if "labels" in inputs:
-            labels = inputs.pop("labels")
-        x = self.embed(**inputs)[0]
-        # if x.isnan().any():
-        #     raise NanException(f"NaN after embeds")
-        x, hiddens = self.nasgepcell_net(x, hiddens)
+    def forward(self, inputs):
         
-        # if x.isnan().any():
-        #     raise NanException(f"NaN after recurrent")
-        if self.hparams.batch_first:
-            x = x[:, 0, :]  # CLS token
-        else:
-            x = x[0, :, :]
-        logits = self.cls_head(x)
-        # if logits.isnan().any():
-        #     raise NanException(f"NaN after CLS head")
-        loss = None
-        if labels is not None:
-            if self.num_labels == 1:
-                #  We are doing regression
-                loss_fct = nn.MSELoss()
-                loss = loss_fct(logits.view(-1), labels.view(-1))
-            else:
-                loss_fct = nn.CrossEntropyLoss()
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-        return loss, logits, hiddens
+        # print('input ', inputs)
+        
+    
+        x = self.conv3x3(inputs)
 
-    def training_step(self, batch, batch_idx, hiddens=None):
-        loss, _, hiddens = self(hiddens, **batch)
-        return {"loss": loss, "hiddens": hiddens}
+        x = self.nasgepcell_net(x)
+ 
+        x = self.batch_norm(x)
+        
+        
+        
+        x = self.global_avg_pool(x)
+        
+        x = x.squeeze()
+        logits = self.fc(x)
+
+        return logits
+
+    # def training_step(self, batch, batch_idx, hiddens=None):
+        # loss, _, hiddens = self(hiddens, **batch)
+        # return {"loss": loss, "hiddens": hiddens}
 
     def tbptt_split_batch(self, batch, split_size):
         num_splits = None
@@ -271,12 +261,10 @@ class NasgepNet(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--num_layers", default=1, type=int)
-        parser.add_argument("--batch_first", default=True, type=bool)
-        parser.add_argument("--bidirection", default=True, type=bool)
-        parser.add_argument("--hidden_size", default=128, type=int)
+        parser.add_argument("--N", default=1, type=int)
+        parser.add_argument("--hidden_shape", default= [3,32,32], nargs='+', type=int)
+        # parser.add_argument("--input_size", default= 32, type=int)
         parser.add_argument("--dropout", default=0.1, type=float)
-        parser.add_argument("--unfreeze_embed", action="store_false")
         parser.add_argument("--use_simple_cls", action="store_true")
         return parser
 
