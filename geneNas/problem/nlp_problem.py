@@ -80,8 +80,7 @@ class NLPProblem(Problem):
         return trainer
 
     def setup_model(self, chromosome):
-        print('chomosome setup model')
-        print(chromosome)
+
         self.chromsome_logger.log_chromosome(chromosome)
         mains, adfs = self.parse_chromosome(chromosome, return_adf=True)
 
@@ -165,21 +164,17 @@ class NLPProblemRWE(NLPProblem):
     def perform_kfold(self, model):
         avg_metrics = 0
         total_time = 0
-        print('KFOLD  ',self.k_folds)
         trainer = self.setup_trainer()
-        print('SET up trainer-------')
-        print(type(trainer))
         model.reset_weights()
         _, train_dataloader, val_dataloader = next(self.dm.kfold(self.k_folds, None))
         self.lr_finder(model, trainer, train_dataloader, val_dataloader)
 
         for fold, train_dataloader, val_dataloader in self.dm.kfold(self.k_folds, None):
+            
             start = time.time()
             try:
                 model.reset_weights()
                 trainer = self.setup_trainer()
-                print('Set up trainer--')
-                print(type(trainer))
                 trainer.fit(
                     model,
                     train_dataloader=train_dataloader,
@@ -227,10 +222,7 @@ class NLPProblemRWEMultiObj(NLPProblemRWE):
 class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
     def __init__(self, args):
         super().__init__(args)
-        print('metric')
-        print(self.dm.metric)
-        print(type(self.dm.metric))
-        input()
+    
         self.metric = self.dm.metric
         # self.weight_values = [-2, -1, -0.5, 0.5, 1, 2]
         self.weight_values = [0.5, 1, 2, 3]
@@ -264,8 +256,6 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
         outputs = []
         encounter_nan = False
         for batch in val_dataloader:
-            print(type(batch))
-            print(batch)
             labels = batch.pop("labels")
             # batch = {k: v.cuda() for k, v in batch.items()}
 
@@ -275,9 +265,6 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
                     print(f"NaN after embeds")
                     encounter_nan = True
                     break
-                print('af ter embed')
-                print(type(x))
-                print(x)
                 # input()
                 x, _ = model(x)
                 if x.isnan().any():
@@ -326,7 +313,6 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
         total_time = 0
 
         for fold, _, val_dataloader in self.dm.kfold(self.k_folds, None):
-            print(type(val_dataloader))
             start = time.time()
             metrics = [
                 self.run_inference(model, wval, val_dataloader)

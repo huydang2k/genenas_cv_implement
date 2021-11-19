@@ -197,23 +197,18 @@ class CV_Problem_MultiObjNoTrain(Problem):
         outputs = []
         encounter_nan = False
         for batch in val_dataloader:
-            
-            # print(batch)
-
             labels = batch[1]
             
             
             # batch = {k: v.cuda() for k, v in batch.items()}
             # batch =  batch[0].cuda()
-            batch =  batch[0]['feature_map'] #note
+            batch =  batch[0]['feature_map']#note
             with torch.cuda.amp.autocast():
-                
                 logits = model(batch)
                 if logits.isnan().any():
                     print(f"NaN after NasgepNet")
                     encounter_nan = True
                     break
-
 
                 if self.dm.num_labels == 1:
                     #  We are doing regression
@@ -259,7 +254,7 @@ class CV_Problem_MultiObjNoTrain(Problem):
         total_time = 0
 
         for fold, _, val_dataloader in self.dm.kfold(self.k_folds, None):
-            print(type(val_dataloader))
+            print(len(val_dataloader))
             start = time.time()
             metrics = [
                 self.run_inference(model, wval, val_dataloader)
@@ -283,7 +278,7 @@ class CV_Problem_MultiObjNoTrain(Problem):
 
     def evaluate(self, chromosome: np.array):
         #fix here
-        # chromosome = np.array([3 ,2 ,0 ,1 ,3 ,0 ,5 ,6 ,6 ,5 ,6 ,5 ,6 ,1 ,0 ,3 ,3 ,1 ,0 ,5 ,5 ,6 ,4 ,5 ,4 ,6 ,9 ,19 ,19 ,16 ,21 ,22 ,21 ,22 ,21 ,7 ,7 ,20 ,8 ,21 ,21 ,21 ,22 ,21])
+       
         print('Evaluate primitive chrosome')
         print(chromosome)
         

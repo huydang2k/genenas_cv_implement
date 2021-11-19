@@ -24,7 +24,7 @@ class RecurrentNet(nn.Module):
         self.hidden_size = hidden_size
         self.batch_first = batch_first
         self.bidirection = bidirection
-        print('input size: ', input_size)
+        
         self.fc = nn.Linear(input_size, hidden_size)
 
         self.num_mains = len(cells)
@@ -35,19 +35,14 @@ class RecurrentNet(nn.Module):
             cell_list = nn.ModuleList()
             adfs_copy = deepcopy(adfs)
             for k, adf in adfs_copy.items():
-                # print(adf)
-                print(adf, 'type: ', type(adf))
+                
                 adf.init_tree(self.hidden_size)
                 adfs_copy[k] = adf
             for cell in cells:
                 
                 new_cell = deepcopy(cell)
-                print(new_cell, 'type: ', type(new_cell))
                 new_cell.init_tree(self.hidden_size)
                 new_cell.assign_adfs(new_cell.root, adfs_copy)
-                
-                print('new cell')
-                print(new_cell)
                 cell_list.append(new_cell)
             self.layers.append(cell_list)
             # print(self.layers[-1]._modules)
@@ -65,9 +60,6 @@ class RecurrentNet(nn.Module):
 
     # this code dumb, need more optimize
     def forward_unidirection(self, layer, x, hidden_states=None):
-        print('foward undir')
-        print(len(hidden_states))
-        print(hidden_states[0].size())
         if self.batch_first:
             _, seq_sz, _ = x.size()
         else:
@@ -77,7 +69,6 @@ class RecurrentNet(nn.Module):
         # x = x.clone()
         # if hidden_states is not None:
         #     hidden_states = [states.clone() for states in hidden_states]
-        print('for each pos in sentence')
         for t in range(seq_sz):
             
             x_t = x[:, t, :].unsqueeze(0)
@@ -102,16 +93,12 @@ class RecurrentNet(nn.Module):
         return hidden_seq, hidden_states
 
     def forward_bidirection(self, layer, x, hidden_states=None):
-        print('foward bidir in each layer')
-        print(len(hidden_states))
-        print('hidden shape: ',hidden_states[0].shape)
         left_to_right_hidden = [
             states[0, :, :].unsqueeze(0) for states in hidden_states
         ]  # 1 x B x H
         right_to_left_hidden = [
             states[1, :, :].unsqueeze(0) for states in hidden_states
         ]  # 1 x B x H
-        print('one direct: ',right_to_left_hidden[0].shape)
         _, _, hidden = x.size()
         assert hidden % 2 == 0, f"Sequence size not divided by 2: {hidden}"
         left_to_right_x = x[:, :, : hidden // 2]
@@ -146,9 +133,6 @@ class RecurrentNet(nn.Module):
         return output, hidden_states
 
     def forward(self, x, hidden_states=None):
-        print('foward RNN')
-        print(x.size())
-        print('hidden size: ',self.hidden_size)
         if self.batch_first:  # B x S x H
             # left_to_right_x = x
             # right_to_left_x = torch.flip(x, dims=[1])
@@ -168,20 +152,12 @@ class RecurrentNet(nn.Module):
                 for _ in range(self.num_mains)
             ]
             hidden_states = [states.type_as(x) for states in hidden_states]
-        print('Len hidden states list: ', len(hidden_states))
-        print('Each element of shape: ', hidden_states[0].shape)
         new_hidden_states = [[] for _ in range(self.num_mains)]
         hidden_states = [
             states.view(self.num_layers, (1 + self.bidirection), bs, self.hidden_size)
             for states in hidden_states
         ]
-        print('view')
-        print('Len hidden states list: ', len(hidden_states))
-        print('Each element of shape: ', hidden_states[0].shape)
-        print('len(layers)')
-        print(len(self.layers))
-        print('self.num_layer: ',self.num_layers)
-        print('bi: ',self.bidirection)
+
         for i, layer in enumerate(self.layers):
             if i == 0:
                 seq_x = [self.fc(x[:, t, :].unsqueeze(0)) for t in range(seq_sz)]

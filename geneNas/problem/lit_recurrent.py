@@ -34,7 +34,7 @@ class LightningRecurrent(pl.LightningModule):
         use_simple_cls: bool = False,
         **kwargs,
     ):
-        print('init LightningRecurrent')
+
         super().__init__()
 
         self.save_hyperparameters()
@@ -79,10 +79,6 @@ class LightningRecurrent(pl.LightningModule):
         self.chromosome_logger = logger
 
     def forward(self, hiddens, **inputs):
-        print('Foward Net')
-        print('input ', inputs)
-        print('hidden ',hiddens)
-        print('Hidden shape: ',hiddens.shape)
         labels = None
         if "labels" in inputs:
             labels = inputs.pop("labels")

@@ -141,8 +141,6 @@ class Problem(ABC):
         return [f"t{i + 1}" for i in range(self.hparams.max_arity)]
 
     def _create_terminal_set_names(self):
-        print('Num ter')
-        print(self.hparams.num_terminal)
         return [f"x{i + 1}" for i in range(self.hparams.num_terminal)]
 
     @staticmethod
@@ -154,7 +152,7 @@ class Problem(ABC):
         parser.add_argument("--h_main", default=4, type=int)
         parser.add_argument("--h_adf", default=3, type=int)
 
-        # parser.add_argument("--num_terminal", default=2, type=int)
+        
         parser.add_argument("--max_arity", default=3, type=int)
 
         parser.add_argument("--pop_size", default=10, type=int)

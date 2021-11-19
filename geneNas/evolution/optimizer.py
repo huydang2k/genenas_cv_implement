@@ -36,7 +36,9 @@ class Optimizer:
             population = np.random.randint(low=lb, high=ub, size=(self.N, self.D))
          
             # first evaluation
+            print('First population')
             fitness = [problem.evaluate(population[i, :]) for i in range(self.N)]
+            print('Finish population')
             start_generation = 1
         else:
             print('load')
