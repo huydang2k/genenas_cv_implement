@@ -186,7 +186,7 @@ class NasgepNet(pl.LightningModule):
     def configure_optimizers(self):
         "Prepare optimizer and schedule (linear warmup and decay)"
         embed = self.embed
-        model = self.recurrent_model
+        model = self.nasgepcell_net
         fc = self.cls_head
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
@@ -243,11 +243,11 @@ class NasgepNet(pl.LightningModule):
         return optimizer
         
     def total_params(self):
-        return sum(p.numel() for p in self.recurrent_model.parameters())
+        return sum(p.numel() for p in self.nasgepcell_net.parameters())
 
     def reset_weights(self):
         self.cls_head.reset_parameters()
-        self.recurrent_model.reset_parameters()
+        self.nasgepcell_net.reset_parameters()
 
     @staticmethod
     def add_learning_specific_args(parent_parser):
