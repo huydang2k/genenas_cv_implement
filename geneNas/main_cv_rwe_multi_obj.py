@@ -2,7 +2,8 @@ import argparse
 import pytorch_lightning as pl
 
 from problem import CV_DataModule
-from problem import CV_Problem_MultiObjNoTrain, NasgepNet
+from problem import NasgepNet
+from problem.CV_Problem_MultiObjTrain_RWE import CV_Problem_MultiObjTrain_RWE
 from evolution import MultiObjectiveOptimizer
 
 import logging
@@ -12,7 +13,7 @@ logging.disable(logging.CRITICAL)
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser = CV_Problem_MultiObjNoTrain.add_arguments(parser)
+    parser = CV_Problem_MultiObjTrain_RWE.add_arguments(parser)
     parser = pl.Trainer.add_argparse_args(parser)
     parser = CV_DataModule.add_argparse_args(parser)
     parser = CV_DataModule.add_cache_arguments(parser)
@@ -40,10 +41,11 @@ def parse_args():
 def main():
     # get args
     args = parse_args()
-    # print(args)
+    print('args', end=': ')
+    print(args)
     # solve source problems
-    problem = CV_Problem_MultiObjNoTrain(args)
-
+    problem = CV_Problem_MultiObjTrain_RWE(args)
+    print(problem.dm.dataset['train'][0])
     # create optimizer
     optimizer = MultiObjectiveOptimizer(args)
     # optimizer.add_optimizer_specific_args(args)

@@ -15,6 +15,12 @@ from torch.utils.data import DataLoader, random_split
 from torch import optim 
 from collections import defaultdict
 import copy
+import torch.nn.functional as F
+
+def one_hot_labels(y, num_labels):
+    return F.one_hot(torch.tensor(y), num_labels).type(torch.float)
+    
+        
 class CV_DataModule(pl.LightningDataModule):
     metrics_names = {
         "cifar10": "accuracy",
@@ -58,7 +64,10 @@ class CV_DataModule(pl.LightningDataModule):
             self.load_cache_dataset(cached_dataset_filepath)
         self.num_labels = self.num_labels_map[self.task_name]
     def convert_img(self,img):
-        return {'feature_map':self.transform(img)}
+        return {'feature_map':self.transform(img).type(torch.float) }
+    
+    
+        
     def setup(self, stage):
         if not self.cache_dataset:
             self.transform = transforms.Compose([
@@ -66,18 +75,23 @@ class CV_DataModule(pl.LightningDataModule):
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
+            self.onehot = lambda x: one_hot_labels(x, self.num_labels)
             
             self.dataset = {}
             self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data', 
                 train=True, 
                 download=True,
-                transform=self.convert_img)
-
+                transform=self.convert_img,
+                target_transform = self.onehot
+                )
+           
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data',
                 train=False,
                 download=True,
-                transform=self.convert_img
+                transform=self.convert_img,
+                target_transform = self.onehot
                 )
+            
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
         else:
             if self.task_name in ["cifar10"]:
