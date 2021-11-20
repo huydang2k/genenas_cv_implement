@@ -65,12 +65,12 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
     ):
         # self.replace_value_with_symbol(individual)
         # print('parse chromosome')
-        print('INFOR: num main {}, main length {}, adf length {}, num adf {}'.format(
-            self.hparams.num_main,
-            self.hparams.main_length,
-            self.hparams.num_adf,
-            self.hparams.adf_length
-        ))
+        # print('INFOR: num main {}, main length {}, adf length {}, num adf {}'.format(
+        #     self.hparams.num_main,
+        #     self.hparams.main_length,
+        #     self.hparams.num_adf,
+        #     self.hparams.adf_length
+        # ))
         
         total_main_length = self.hparams.num_main * self.hparams.main_length
         # print('total main length ',total_main_length)
@@ -80,8 +80,8 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         for i in range(self.hparams.num_adf):
             start_idx = total_main_length + i * self.hparams.adf_length
             end_idx = start_idx + self.hparams.adf_length
-            print('Decode adf ',i)
-            print(chromosome[start_idx:end_idx])
+            # print('Decode adf ',i)
+            # print(chromosome[start_idx:end_idx])
             sub_chromosome = chromosome[start_idx:end_idx]
             adf = self.parse_tree(sub_chromosome, adf_function_set)
             # print(type(adf))
@@ -90,8 +90,8 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         for i in range(self.hparams.num_main):
             start_idx = i * self.hparams.main_length
             end_idx = start_idx + self.hparams.main_length
-            print('Decode main ',i)
-            print(chromosome[start_idx:end_idx])
+            # print('Decode main ',i)
+            # print(chromosome[start_idx:end_idx])
             sub_chromosome = chromosome[start_idx:end_idx]
             main_func = self.parse_tree(sub_chromosome, main_function_set)
             # print(type(main_func))

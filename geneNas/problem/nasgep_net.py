@@ -88,8 +88,8 @@ class NasgepNet(pl.LightningModule):
 
         preds = torch.cat([x["preds"] for x in outputs]).detach().cpu().numpy()
         labels = torch.cat([x["labels"] for x in outputs]).detach().cpu().numpy()
-        self.print(np.unique(preds, return_counts=True))
-        self.print(np.unique(labels, return_counts=True))
+        # self.print(np.unique(preds, return_counts=True))
+        # self.print(np.unique(labels, return_counts=True))
         loss = torch.stack([x["loss"] for x in outputs]).mean()
         self.log("val_loss", loss, prog_bar=True)
         metrics = self.metric.compute(predictions=preds, references=labels)
@@ -313,7 +313,7 @@ class NasgepNetRWE_multiObj(NasgepNet):
         num_val_dataloader: int = 1,
         **kwargs,
     ):
-        print('init NasgepNetRWE')
+        # print('init NasgepNetRWE')
         super().__init__( 
             num_labels = num_labels,
             dropout = dropout,
@@ -357,7 +357,7 @@ class NasgepNetRWE_multiObj(NasgepNet):
         return sum(p.numel() for p in self.nasgepcell_rwe_net.parameters())
     
     def forward(self, feature_map):
-        print('Foward NasgepNetRWE')
+        # print('Foward NasgepNetRWE')
         
         x = self.conv3x3(feature_map)
         x = self.nasgepcell_rwe_net(x)
@@ -465,8 +465,8 @@ class NasgepNetRWE_multiObj(NasgepNet):
         preds = torch.cat([x["preds"] for x in outputs]).detach().cpu().numpy()
         labels = torch.cat([x["labels"] for x in outputs]).detach().cpu().numpy()
         
-        self.print(np.unique(preds, return_counts=True))
-        self.print(np.unique(labels, return_counts=True))
+        # self.print(np.unique(preds, return_counts=True))
+        # self.print(np.unique(labels, return_counts=True))
         loss = torch.stack([x["loss"] for x in outputs]).mean()
         self.log("val_loss", loss, prog_bar=True)
         metrics = self.metric.compute(predictions=preds, references=labels)
