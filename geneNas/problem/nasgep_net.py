@@ -186,7 +186,7 @@ class NasgepNet(pl.LightningModule):
     def configure_optimizers(self):
         "Prepare optimizer and schedule (linear warmup and decay)"
         embed = self.embed
-        model = self.nasgepcell_net
+        model = self.recurrent_model
         fc = self.cls_head
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
@@ -243,11 +243,11 @@ class NasgepNet(pl.LightningModule):
         return optimizer
         
     def total_params(self):
-        return sum(p.numel() for p in self.nasgepcell_net.parameters())
+        return sum(p.numel() for p in self.recurrent_model.parameters())
 
     def reset_weights(self):
         self.cls_head.reset_parameters()
-        self.nasgepcell_net.reset_parameters()
+        self.recurrent_model.reset_parameters()
 
     @staticmethod
     def add_learning_specific_args(parent_parser):
@@ -352,6 +352,9 @@ class NasgepNetRWE_multiObj(NasgepNet):
         for param in nasgepcell_net.parameters():
             param.requires_grad = False
         self.add_module("nasgepcell_rwe_net", nasgepcell_net)
+    
+    def total_params(self):
+        return sum(p.numel() for p in self.nasgepcell_rwe_net.parameters())
     
     def forward(self, feature_map):
         print('Foward NasgepNetRWE')
