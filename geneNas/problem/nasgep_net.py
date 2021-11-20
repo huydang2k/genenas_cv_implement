@@ -351,10 +351,10 @@ class NasgepNetRWE_multiObj(NasgepNet):
         )
         for param in nasgepcell_net.parameters():
             param.requires_grad = False
-        self.add_module("nasgepcell_net", nasgepcell_net)
+        self.add_module("nasgepcell_rwe_net", nasgepcell_net)
     
     def total_params(self):
-        return sum(p.numel() for p in self.nasgepcell_net.parameters())
+        return sum(p.numel() for p in self.nasgepcell_rwe_net.parameters())
     
     def forward(self, feature_map):
         print('Foward NasgepNetRWE')

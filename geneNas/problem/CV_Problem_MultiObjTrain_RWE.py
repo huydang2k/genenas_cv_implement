@@ -218,9 +218,11 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
                 trainer = self.setup_trainer()
                 # print('Set up trainer--')
                 trainer.fit(
+                    
                     model,
                     train_dataloader=train_dataloader,
                     val_dataloaders=val_dataloader,
+                    max_epochs = 20,
                 )
                 metrics = self.chromsome_logger.logs[-1]["data"][-1]["metrics"][
                     self.metric_name
