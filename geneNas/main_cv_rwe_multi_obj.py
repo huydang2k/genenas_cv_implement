@@ -45,7 +45,6 @@ def main():
     print(args)
     # solve source problems
     problem = CV_Problem_MultiObjTrain_RWE(args)
-    print(problem.dm.dataset['train'][0])
     # create optimizer
     optimizer = MultiObjectiveOptimizer(args)
     # optimizer.add_optimizer_specific_args(args)

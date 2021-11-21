@@ -178,6 +178,7 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
             weights_summary=self.weights_summary,
             checkpoint_callback=False,
             callbacks=early_stop,
+            max_epochs = self.hparams.max_epochs
         )
         return trainer
 
@@ -207,22 +208,21 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         # print('KFOLD  ',self.k_folds)
         trainer = self.setup_trainer()
         # print('SET up trainer-------')
-        model.reset_weights()
+        # model.reset_weights()
         _, train_dataloader, val_dataloader = next(self.dm.kfold(self.k_folds, None))
         self.lr_finder(model, trainer, train_dataloader, val_dataloader)
 
         for fold, train_dataloader, val_dataloader in self.dm.kfold(self.k_folds, None):
             start = time.time()
             try:
-                model.reset_weights()
+                # model.reset_weights()
                 trainer = self.setup_trainer()
                 # print('Set up trainer--')
                 trainer.fit(
                     
                     model,
-                    train_dataloader=train_dataloader,
+                    train_dataloaders=train_dataloader,
                     val_dataloaders=val_dataloader,
-                    max_epochs = 20,
                 )
                 metrics = self.chromsome_logger.logs[-1]["data"][-1]["metrics"][
                     self.metric_name

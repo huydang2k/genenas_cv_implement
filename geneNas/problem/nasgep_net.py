@@ -55,10 +55,7 @@ class NasgepNet(pl.LightningModule):
         self.num_val_dataloader = num_val_dataloader
         self.cell_dropout = nn.Dropout(p=dropout)
         self.fc = nn.Linear(self.hidden_shape[0],num_labels)
-        # if not use_simple_cls:
-        #     self.cls_head = ClsHead(post_nasgep_cell_output_channel, dropout, num_labels)
-        # else:
-        #     self.cls_head = SimpleClsHead(post_nasgep_cell_output_channel, dropout, num_labels)
+     
 
         self.chromosome_logger: Optional[ChromosomeLogger] = None
         self.metric = None
@@ -333,7 +330,7 @@ class NasgepNetRWE_multiObj(NasgepNet):
         self.batch_norm = nn.BatchNorm2d(post_nasgep_cell_output_channel)
         self.relu = nn.ReLU()
         
-        self.global_avg_pool = nn.AvgPool2d(kernel_size = self.hidden_shape[1])
+        self.global_avg_pool = nn.AvgPool2d(kernel_size = int(self.hidden_shape[1]/4) )
         
         self.num_labels = num_labels
         self.num_val_dataloader = num_val_dataloader
@@ -351,6 +348,7 @@ class NasgepNetRWE_multiObj(NasgepNet):
         )
         for param in nasgepcell_net.parameters():
             param.requires_grad = False
+       
         self.add_module("nasgepcell_rwe_net", nasgepcell_net)
     
     def total_params(self):
@@ -366,7 +364,7 @@ class NasgepNetRWE_multiObj(NasgepNet):
         # print(x.shape)
         # print(type(self.hidden_shape[1]))
         # print(self.hidden_shape)
-        self.global_avg_pool = nn.AvgPool2d(kernel_size = self.hidden_shape[1])
+        # print(self.global_avg_pool)
         x = self.global_avg_pool(x)
         x = x.squeeze()
         logits = self.cls_head(x)
@@ -395,29 +393,33 @@ class NasgepNetRWE_multiObj(NasgepNet):
                     for n, p in fc.named_parameters()
                     if not any(nd in n for nd in no_decay)
                 ]
-                + [
-                    p
-                    for n, p in embed.named_parameters()
-                    if not any(nd in n for nd in no_decay)
-                ],
+                # + [
+                #     p
+                #     for n, p in embed.named_parameters()
+                #     if not any(nd in n for nd in no_decay)
+                # ]
+                ,
                 "weight_decay": self.hparams.weight_decay,
             },
             {
-                "params": [
-                    p
-                    for n, p in model.named_parameters()
-                    if any(nd in n for nd in no_decay)
-                ]
-                + [
+                "params": 
+                #[
+                #     p
+                #     for n, p in model.named_parameters()
+                #     if any(nd in n for nd in no_decay)
+                # ]
+                # + 
+                [
                     p
                     for n, p in fc.named_parameters()
                     if any(nd in n for nd in no_decay)
                 ]
-                + [
-                    p
-                    for n, p in embed.named_parameters()
-                    if any(nd in n for nd in no_decay)
-                ],
+                # + [
+                #     p
+                #     for n, p in embed.named_parameters()
+                #     if any(nd in n for nd in no_decay)
+                # ]
+                ,
                 "weight_decay": 0.0,
             },
         ]
@@ -440,7 +442,7 @@ class NasgepNetRWE_multiObj(NasgepNet):
         self.cls_head.reset_parameters()
     
     def validation_step(self, batch, batch_idx):
-        
+       
         logits = self(batch[0]['feature_map'])
         labels = batch[1]
 
