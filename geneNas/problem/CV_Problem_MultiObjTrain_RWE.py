@@ -1,15 +1,14 @@
 #Implement search strategy
-from .nasgep_net import NasgepNetRWE_multiObj
+from .nasgep_net_train import NasgepNetRWE_multiObj
 from .abstract_problem import Problem
 from .function_set import CV_Main_FunctionSet, CV_ADF_FunctionSet
 from typing import List, Tuple
 import numpy as np
-from .cv_data_module import CV_DataModule
+from .cv_data_module import CV_DataModule_RWE
 from util.logger import ChromosomeLogger
 from evolution import GeneType
 import time
 import torch
-import torch.nn as nn
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import pytorch_lightning as pl
 from util.exception import NanException
@@ -20,12 +19,10 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         super().__init__(args)
         self.main_function_set = CV_Main_FunctionSet.return_func_name()
         self.adf_function_set = CV_ADF_FunctionSet.return_func_name()
-        self.dm = CV_DataModule.from_argparse_args(self.hparams)
-        self.dm.prepare_data()
-        self.dm.setup("fit")
+        
 
         self.chromsome_logger = ChromosomeLogger()
-        self.metric_name = self.dm.metrics_names[self.hparams.task_name]
+        
 
         self.progress_bar = 0
         self.weights_summary = None
@@ -146,6 +143,7 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         new_lr = lr_finder.suggestion()
         model.hparams.lr = new_lr
         print(f"New optimal lr: {new_lr}")
+        
     def apply_weight(self, model, value):
         sampler = torch.distributions.uniform.Uniform(low=-value, high=value)
         with torch.no_grad():
@@ -183,6 +181,9 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         return trainer
 
     def setup_model(self, chromosome):
+        print('create a model')
+        self.dm = CV_DataModule_RWE.from_argparse_args(self.hparams)
+        self.metric_name = self.dm.metrics_names[self.hparams.task_name]
         self.chromsome_logger.log_chromosome(chromosome)
         mains, adfs = self.parse_chromosome(chromosome, return_adf=True)
         # print('mains: ', mains, type(mains[0]))
@@ -190,13 +191,19 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         # print(self.hparams)
         glue_pl = NasgepNetRWE_multiObj(
             num_labels=self.dm.num_labels,
-            eval_splits=self.dm.eval_splits,
+            # eval_splits=self.dm.eval_splits,
             **vars(self.hparams),
         )
         glue_pl.init_metric(self.dm.metric)
 
         glue_pl.init_model(mains, adfs)
         glue_pl.init_chromosome_logger(self.chromsome_logger)
+        
+        #precalculate data
+        self.dm.get_model(glue_pl)
+        self.dm.prepare_data()
+        self.dm.setup("fit")
+        
         return glue_pl
     
     
@@ -210,6 +217,7 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         # print('SET up trainer-------')
         # model.reset_weights()
         _, train_dataloader, val_dataloader = next(self.dm.kfold(self.k_folds, None))
+  
         self.lr_finder(model, trainer, train_dataloader, val_dataloader)
 
         for fold, train_dataloader, val_dataloader in self.dm.kfold(self.k_folds, None):
@@ -253,3 +261,5 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         print('Set up model')
         glue_pl = self.setup_model(chromosome)
         return self.perform_kfold(glue_pl), glue_pl.total_params()
+
+    

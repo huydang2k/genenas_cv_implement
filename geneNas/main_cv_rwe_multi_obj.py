@@ -2,7 +2,7 @@ import argparse
 import pytorch_lightning as pl
 
 from problem import CV_DataModule
-from problem import NasgepNet
+from problem import NasgepNetRWE_multiObj
 from problem.CV_Problem_MultiObjTrain_RWE import CV_Problem_MultiObjTrain_RWE
 from evolution import MultiObjectiveOptimizer
 
@@ -17,8 +17,8 @@ def parse_args():
     parser = pl.Trainer.add_argparse_args(parser)
     parser = CV_DataModule.add_argparse_args(parser)
     parser = CV_DataModule.add_cache_arguments(parser)
-    parser = NasgepNet.add_model_specific_args(parser)
-    parser = NasgepNet.add_learning_specific_args(parser)
+    parser = NasgepNetRWE_multiObj.add_model_specific_args(parser)
+    parser = NasgepNetRWE_multiObj.add_learning_specific_args(parser)
     parser = MultiObjectiveOptimizer.add_optimizer_specific_args(parser)
     parser.add_argument("--seed", type=int, default=42)
 

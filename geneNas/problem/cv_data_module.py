@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 import datasets
 import torch
-from torch.utils.data import DataLoader, SubsetRandomSampler
+from torch.utils.data import DataLoader, SubsetRandomSampler, Dataset
 import pytorch_lightning as pl
 from transformers import AutoTokenizer, AutoModel
 from sklearn.model_selection import KFold, train_test_split
@@ -17,8 +17,7 @@ from collections import defaultdict
 import copy
 import torch.nn.functional as F
 
-def one_hot_labels(y, num_labels):
-    return F.one_hot(torch.tensor(y), num_labels).type(torch.float)
+
     
         
 class CV_DataModule(pl.LightningDataModule):
@@ -64,10 +63,7 @@ class CV_DataModule(pl.LightningDataModule):
             self.load_cache_dataset(cached_dataset_filepath)
         self.num_labels = self.num_labels_map[self.task_name]
     def convert_img(self,img):
-        return {'feature_map':self.transform(img).type(torch.float) }
-    
-    
-        
+        return {'feature_map':self.transform(img)}
     def setup(self, stage):
         if not self.cache_dataset:
             self.transform = transforms.Compose([
@@ -75,23 +71,18 @@ class CV_DataModule(pl.LightningDataModule):
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
-            self.onehot = lambda x: one_hot_labels(x, self.num_labels)
             
             self.dataset = {}
             self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data', 
                 train=True, 
                 download=True,
-                transform=self.convert_img,
-                target_transform = self.onehot
-                )
-           
+                transform=self.convert_img)
+
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data',
                 train=False,
                 download=True,
-                transform=self.convert_img,
-                target_transform = self.onehot
+                transform=self.convert_img
                 )
-            
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
         else:
             if self.task_name in ["cifar10"]:
@@ -109,12 +100,12 @@ class CV_DataModule(pl.LightningDataModule):
        
 
     def train_dataloader(self):
-        return DataLoader(self.dataset['train'], batch_size=self.train_batch_size, shuffle=True,num_workers=2)
+        return DataLoader(self.dataset['train'], batch_size=self.train_batch_size, shuffle=True,num_workers= self.num_workers)
 
     def val_dataloader(self):
-        return DataLoader(self.dataset['validation'], batch_size=self.eval_batch_size, shuffle=True,num_workers=2)
+        return DataLoader(self.dataset['validation'], batch_size=self.eval_batch_size, shuffle=True,num_workers= self.num_workers)
     def test_dataloader(self):
-        return DataLoader(self.dataset['test'], batch_size=self.eval_batch_size, shuffle=True,num_workers=2)
+        return DataLoader(self.dataset['test'], batch_size=self.eval_batch_size, shuffle=True,num_workers= self.num_workers)
 
     @property
     def train_dataset(self):
@@ -146,13 +137,13 @@ class CV_DataModule(pl.LightningDataModule):
                 self.train_dataset,
                 batch_size=self.train_batch_size,
                 sampler=train_subsampler,
-                num_workers=self.num_workers,
+                num_workers= 0,
                 pin_memory=self.pin_memory,
             ), DataLoader(
                 self.train_dataset,
                 batch_size=self.eval_batch_size,
                 sampler=val_subsampler,
-                num_workers=self.num_workers,
+                num_workers= 0,
                 pin_memory=self.pin_memory,
             ),
 
@@ -173,4 +164,82 @@ class CV_DataModule(pl.LightningDataModule):
         )
         parser.add_argument("--k-folds", type=int, default=10)
 
-        return parser
+        return parser 
+    
+def one_hot_labels(y, num_labels):
+    return {'one_hot': F.one_hot(torch.tensor(y), num_labels).type(torch.float), 'labels': y}  
+class CV_DataModule_RWE(CV_DataModule):
+    def __init__(
+        self,
+        task_name: str,
+        input_shape : Tuple[int,int,int] = [3,32,32],
+        input_size:int = 32,
+        train_batch_size: int = 32,
+        eval_batch_size: int = 32,
+        cache_dataset: bool = False,
+        cached_dataset_filepath: str = "",
+        num_workers: int = 4,
+        pin_memory: bool = True,
+        **kwargs,
+    ):
+        super().__init__(
+            task_name= task_name,
+            input_shape= input_shape,
+            input_size= input_size,
+            train_batch_size= train_batch_size,
+            eval_batch_size= eval_batch_size,
+            cache_dataset= cache_dataset,
+            cached_dataset_filepath= cached_dataset_filepath,
+            pin_memory= False,
+            num_workers= num_workers,
+        )
+    
+    def convert_img(self,img):
+        return {'feature_map': self.transform(img)}
+    
+    def get_model(self, model: pl.LightningModule):
+        self.model = model
+    
+    def setup(self, stage):
+        if not self.cache_dataset:
+            self.transform = transforms.Compose([
+                transforms.Resize(self.input_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+            self.onehot = lambda x: one_hot_labels(x, self.num_labels)
+            
+            self.dataset = {}
+            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data', 
+                train=True, 
+                download=True,
+                transform=self.convert_img,
+                target_transform = self.onehot
+                )
+            x = precalculated_dataset(self.dataset['train'])
+            self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data',
+                train=False,
+                download=True,
+                transform=self.convert_img,
+                target_transform = self.onehot
+                )
+            
+            self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
+        else:
+            if self.task_name in ["cifar10"]:
+                self.dataset["test"] = self.dataset["validation"]
+            split_dict = self.dataset["train"].train_test_split(test_size=0.1, seed=42)
+            self.dataset["train"] = split_dict["train"]
+            self.dataset["validation"] = split_dict["test"]
+            
+        self.eval_splits = [x for x in self.dataset.keys() if "validation" in x] 
+        
+class precalculated_dataset(Dataset):
+    def __init__(self, dataset, model = None):
+        self.precalculate(dataset)
+        pass
+
+    def precalculate(self, dataset):
+        for x in dataset:
+            print(x)
+        
