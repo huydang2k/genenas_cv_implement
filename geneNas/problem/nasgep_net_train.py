@@ -74,12 +74,16 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
             return x
         
         if mode == 'pre_calculate':   
-            
-            x = self.embed(feature_map.unsqueeze(0).cuda())
+            # print('pre_calculating')
+            try:
+                x = self.embed(feature_map.cuda())
+            except:
+                x = self.embed(feature_map.unsqueeze(0).cuda())
             x = self.nasgepcell_rwe_net(x)
             return x.squeeze()
         
         if mode == 'validate':
+            # print('validating')
             x = self.cls_head(feature_map)
             return x
             

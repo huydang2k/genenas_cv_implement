@@ -137,13 +137,13 @@ class CV_DataModule(pl.LightningDataModule):
                 self.train_dataset,
                 batch_size=self.train_batch_size,
                 sampler=train_subsampler,
-                num_workers= 0,
+                num_workers= self.num_workers,
                 pin_memory=self.pin_memory,
             ), DataLoader(
                 self.train_dataset,
                 batch_size=self.eval_batch_size,
                 sampler=val_subsampler,
-                num_workers= 0,
+                num_workers= self.num_workers,
                 pin_memory=self.pin_memory,
             ),
 
@@ -210,21 +210,23 @@ class CV_DataModule_RWE(CV_DataModule):
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
             
             self.dataset = {}
+            self.dataset_ga = {}
             self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data', 
                 train=True, 
                 download=True,
                 transform=self.convert_img,
                 target_transform = self.onehot
                 )
-            x = precalculated_dataset(self.dataset['train'])
+            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model)
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data',
                 train=False,
                 download=True,
                 transform=self.convert_img,
                 target_transform = self.onehot
-                )
-            
+            )
+            self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model)
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
+            self.dataset_ga['validation'] = copy.deepcopy(self.dataset_ga['test'])
         else:
             if self.task_name in ["cifar10"]:
                 self.dataset["test"] = self.dataset["validation"]
@@ -233,13 +235,68 @@ class CV_DataModule_RWE(CV_DataModule):
             self.dataset["validation"] = split_dict["test"]
             
         self.eval_splits = [x for x in self.dataset.keys() if "validation" in x] 
-        
+
+    def kfold(self, k_folds=10, seed=420):
+        kfold = KFold(n_splits=k_folds, shuffle=True, random_state=seed)
+        # K-fold Cross Validation model evaluation
+        for fold, (train_ids, val_ids) in enumerate(kfold.split(self.dataset_ga['train'])):
+            train_ids = train_ids.tolist()
+            val_ids = val_ids.tolist()
+            
+            train_subsampler = SubsetRandomSampler(train_ids)
+            val_subsampler = SubsetRandomSampler(val_ids)
+            
+            yield fold, DataLoader(
+                self.dataset_ga['train'],
+                batch_size=self.train_batch_size,
+                sampler=train_subsampler,
+                num_workers= self.num_workers,
+                pin_memory=self.pin_memory,
+            ), DataLoader(
+                self.dataset_ga['train'],
+                batch_size=self.eval_batch_size,
+                sampler=val_subsampler,
+                num_workers= self.num_workers,
+                pin_memory=self.pin_memory,
+            ),
+
+def stack_tensors(tensors: list):
+    tensor = tensors[0]
+    for i in range(1, len(tensors)):
+        tensor = torch.cat(tensor, tensors[i])
+    return tensor
 class precalculated_dataset(Dataset):
     def __init__(self, dataset, model = None):
-        self.precalculate(dataset)
-        pass
+        self.data = {}
+        model.cuda()
+        self.precalculate(dataset, model)
 
-    def precalculate(self, dataset):
-        for x in dataset:
-            print(x)
+    def precalculate(self, dataset, model):
+        # for datapoint in dataset:
+        #     self.data.append((
+        #         model(datapoint[0]['feature_map'], mode = 'pre_calculate').detach(),
+        #         datapoint[1]
+        #     ))
+        feature_map = []
+        labels = []
+        one_hot = []
+        for i in range (0, len(dataset), 1028):
+            end = min(i + 1028, len(dataset))
+            tensor = []
+            for j in range(i, end):
+                tensor.append(dataset[j][0]['feature_map'])
+                labels.append(dataset[j][1]['labels'])
+                one_hot.append(dataset[j][1]['one_hot'])
+            tensor = model(torch.stack(tensor), mode = 'pre_calculate').detach()
+            feature_map.append(tensor)
         
+        self.data['feature_map'] = stack_tensors(feature_map)
+        self.data['labels'] = labels
+        self.data['one_hot'] = stack_tensors(one_hot)
+            
+    
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        return ({'feature_map': self.data['feature_map'][index]}, {'labels': self.data['labels'][index], 'one_hot': self.data['one_hot'][index]})
