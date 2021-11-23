@@ -83,7 +83,6 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
             return x.squeeze()
         
         if mode == 'validate':
-            # print('validating')
             x = self.cls_head(feature_map)
             return x
             
@@ -215,7 +214,7 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
         return parser
     
     def total_params(self):
-        return sum(p.numel() for p in self.recurrent_model.parameters())
+        return sum(p.numel() for p in self.nasgepcell_rwe_net.parameters())
     
     def init_chromosome_logger(self, logger: ChromosomeLogger):
         self.chromosome_logger = logger

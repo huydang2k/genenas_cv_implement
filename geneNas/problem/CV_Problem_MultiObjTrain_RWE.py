@@ -181,7 +181,6 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         return trainer
 
     def setup_model(self, chromosome):
-        print('create a model')
         self.dm = CV_DataModule_RWE.from_argparse_args(self.hparams)
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
         self.chromsome_logger.log_chromosome(chromosome)
@@ -250,7 +249,8 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
 
         # result = trainer.test()
         avg_metrics = avg_metrics / self.k_folds
-        print(f"FOLD AVG: {self.metric_name} {avg_metrics} ; Time {total_time}")
+        total_params = model.total_params()
+        print(f"FOLD AVG: {self.metric_name} {avg_metrics}; Total_params: {total_params} ; Time {total_time}")
         return avg_metrics
 
     def evaluate(self, chromosome: np.array):
@@ -260,6 +260,6 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         print(f"CHROMOSOME: {symbols}")
         print('Set up model')
         glue_pl = self.setup_model(chromosome)
-        return self.perform_kfold(glue_pl), glue_pl.total_params()
+        return self.perform_kfold(glue_pl)
 
     

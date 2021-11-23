@@ -16,7 +16,7 @@ from torch import optim
 from collections import defaultdict
 import copy
 import torch.nn.functional as F
-
+import time
 
     
         
@@ -217,14 +217,18 @@ class CV_DataModule_RWE(CV_DataModule):
                 transform=self.convert_img,
                 target_transform = self.onehot
                 )
-            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model)
+            print('Precalculating')
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data',
                 train=False,
                 download=True,
                 transform=self.convert_img,
                 target_transform = self.onehot
             )
-            self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model)
+            start = time.time()
+            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size)
+            self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size)
+            end = time.time()
+            print('Finish precalculating, Time: ', end - start)
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
             self.dataset_ga['validation'] = copy.deepcopy(self.dataset_ga['test'])
         else:
@@ -260,43 +264,37 @@ class CV_DataModule_RWE(CV_DataModule):
                 pin_memory=self.pin_memory,
             ),
 
-def stack_tensors(tensors: list):
-    tensor = tensors[0]
-    for i in range(1, len(tensors)):
-        tensor = torch.cat(tensor, tensors[i])
-    return tensor
 class precalculated_dataset(Dataset):
-    def __init__(self, dataset, model = None):
+    def __init__(self, dataset, model = None, batch_size = 2056):
         self.data = {}
         model.cuda()
-        self.precalculate(dataset, model)
+        self.precalculate(dataset, model, batch_size)
+        
 
-    def precalculate(self, dataset, model):
-        # for datapoint in dataset:
-        #     self.data.append((
-        #         model(datapoint[0]['feature_map'], mode = 'pre_calculate').detach(),
-        #         datapoint[1]
-        #     ))
+    def precalculate(self, dataset, model, batch_size):
         feature_map = []
         labels = []
         one_hot = []
-        for i in range (0, len(dataset), 1028):
+        for i in range (0, len(dataset), batch_size):
             end = min(i + 1028, len(dataset))
             tensor = []
             for j in range(i, end):
                 tensor.append(dataset[j][0]['feature_map'])
                 labels.append(dataset[j][1]['labels'])
-                one_hot.append(dataset[j][1]['one_hot'])
+                one_hot.append(dataset[j][1]['one_hot'].unsqueeze(0))
             tensor = model(torch.stack(tensor), mode = 'pre_calculate').detach()
             feature_map.append(tensor)
+            
+        self.data['feature_map'] = torch.cat(feature_map).to('cpu')
+        self.data['labels'] = torch.tensor(labels).to('cpu')
+        self.data['one_hot'] = torch.cat(one_hot).to('cpu')
         
-        self.data['feature_map'] = stack_tensors(feature_map)
-        self.data['labels'] = labels
-        self.data['one_hot'] = stack_tensors(one_hot)
+        
             
     
     def __len__(self):
-        return len(self.data)
+        return len(self.data['feature_map'])
 
     def __getitem__(self, index):
         return ({'feature_map': self.data['feature_map'][index]}, {'labels': self.data['labels'][index], 'one_hot': self.data['one_hot'][index]})
+
