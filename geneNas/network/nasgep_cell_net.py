@@ -37,16 +37,23 @@ class NasgepCellNet(nn.Module):
            
             new_cell = deepcopy(cell)
            
-            is_cv_problem = True
             new_cell.init_tree(self.hidden_shape)
             new_cell.assign_adfs(new_cell.root, adfs_copy)
             if index_main == 1:
                 new_cell.make_stride_along_tree()
             self.cell_list.append(new_cell)
+        self.all_cells = nn.ModuleList()
+        for i in range(N):
+           self.all_cells.append(deepcopy(self.cell_list[0]))
+        self.all_cells.append(deepcopy(self.cell_list[1]))
+        for i in range(N):
+           self.all_cells.append(deepcopy(self.cell_list[0]))
+        self.all_cells.append(deepcopy(self.cell_list[1]))
+
         self.init_weights()
 
     def init_weights(self):
-        for cell in self.cell_list:
+        for cell in self.all_cells:
             std = 1.0 / math.sqrt(self.hidden_shape[1])
             for weight in cell.parameters():
                 weight.data.uniform_(-std, std)
@@ -61,13 +68,14 @@ class NasgepCellNet(nn.Module):
         # feature_map = x
         input_dict = {"x1": x,"x2": torch.clone(x),"x3": torch.clone(x) }
 
-        for _ in range(2):
-            for i in range(self.N):
+        # for _ in range(2):
+        #     for i in range(self.N):
 
-                input_dict["x1"] = input_dict["x2"] = input_dict["x3"] = self.cell_list[0](input_dict)
+        #         input_dict["x1"] = input_dict["x2"] = input_dict["x3"] = self.cell_list[0](input_dict)
                 
 
-            input_dict["x1"] = input_dict["x2"] = input_dict["x3"] = self.cell_list[1](input_dict)
-            
+        #     input_dict["x1"] = input_dict["x2"] = input_dict["x3"] = self.cell_list[1](input_dict)
+        for i in range(len(self.all_cells)):
+            input_dict["x1"] = input_dict["x2"] = input_dict["x3"] = self.all_cells[i](input_dict)
 
         return input_dict["x1"]
