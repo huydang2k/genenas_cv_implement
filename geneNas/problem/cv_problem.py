@@ -10,6 +10,8 @@ from evolution import GeneType
 import time
 import torch
 import torch.nn as nn
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+import pytorch_lightning as pl
 class CV_Problem_MultiObjNoTrain(Problem):
     def __init__(self, args):
         super().__init__(args)

@@ -50,7 +50,7 @@ def main():
     # optimizer.add_optimizer_specific_args(args)
     # Optimize architecture
     print('Run')
-    population, objs = optimizer.ga(problem)
+    population, objs = optimizer.ga(problem, return_best = False)
 
     for i, idv in enumerate(population):
         symbols, _, _ = problem.replace_value_with_symbol(population[i])

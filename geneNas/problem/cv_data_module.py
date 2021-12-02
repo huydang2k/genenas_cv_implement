@@ -64,6 +64,7 @@ class CV_DataModule(pl.LightningDataModule):
         self.num_labels = self.num_labels_map[self.task_name]
     def convert_img(self,img):
         return {'feature_map':self.transform(img)}
+    
     def setup(self, stage):
         if not self.cache_dataset:
             self.transform = transforms.Compose([
@@ -298,3 +299,59 @@ class precalculated_dataset(Dataset):
     def __getitem__(self, index):
         return ({'feature_map': self.data['feature_map'][index]}, {'labels': self.data['labels'][index], 'one_hot': self.data['one_hot'][index]})
 
+class CV_DataModule_train(CV_DataModule):
+    def __init__(self, 
+                 task_name: str, 
+                 input_shape: Tuple[int, int, int] = [3, 32, 32], 
+                 input_size: int = 32, 
+                 train_batch_size: int = 32, 
+                 eval_batch_size: int = 32, 
+                 cache_dataset: bool = False, 
+                 cached_dataset_filepath: str = "", 
+                 num_workers: int = 4, 
+                 pin_memory: bool = True, **kwargs):
+        super().__init__(task_name, 
+                         input_shape=input_shape, 
+                         input_size=input_size, 
+                         train_batch_size=train_batch_size, 
+                         eval_batch_size=eval_batch_size, 
+                         cache_dataset=cache_dataset, 
+                         cached_dataset_filepath=cached_dataset_filepath, 
+                         num_workers=num_workers, 
+                         pin_memory=pin_memory, 
+                         **kwargs)
+    
+    def setup(self, stage):
+        if not self.cache_dataset:
+            self.transform = transforms.Compose([
+                transforms.Resize(self.input_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+            self.onehot = lambda x: one_hot_labels(x, self.num_labels)
+            
+            self.dataset = {}
+            self.dataset_ga = {}
+            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data', 
+                train=True, 
+                download=True,
+                transform=self.convert_img,
+                target_transform = self.onehot
+                )
+           
+            self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data',
+                train=False,
+                download=True,
+                transform=self.convert_img,
+                target_transform = self.onehot
+            )
+            self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
+            self.dataset_ga['validation'] = copy.deepcopy(self.dataset_ga['test'])
+        else:
+            if self.task_name in ["cifar10"]:
+                self.dataset["test"] = self.dataset["validation"]
+            split_dict = self.dataset["train"].train_test_split(test_size=0.1, seed=42)
+            self.dataset["train"] = split_dict["train"]
+            self.dataset["validation"] = split_dict["test"]
+            
+        self.eval_splits = [x for x in self.dataset.keys() if "validation" in x]
