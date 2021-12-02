@@ -41,7 +41,8 @@ def main():
     args = parse_args()
 
     # solve source problems
-    problem = NLPProblemRWEMultiObjNoTrain(args)
+    distribution = 'gaussian'
+    problem = NLPProblemRWEMultiObjNoTrain(args, distribution=distribution)
 
     # create optimizer
     optimizer = MultiObjectiveOptimizer(args)

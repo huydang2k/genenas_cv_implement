@@ -227,11 +227,19 @@ class NLPProblemRWEMultiObj(NLPProblemRWE):
 
 
 class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
-    def __init__(self, args):
+    def __init__(self, args, distribution='uniform'):
         super().__init__(args)
         self.metric = self.dm.metric
         # self.weight_values = [-2, -1, -0.5, 0.5, 1, 2]
-        self.weight_values = [0.5, 1, 2, 3]
+        self.distribution = distribution
+
+        if distribution == 'uniform':
+            self.weight_values = [0.5, 1, 2, 3]
+        elif distribution == 'gaussian':
+            self.weight_values = [(0.0, 1.0),
+                                  (0.0, 1.5),
+                                  (0.0, 2.0),
+                                  (0.0, 3.0)]
 
         from .lit_recurrent import ClsHead, SimpleClsHead
 
@@ -248,7 +256,17 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
         self.embed.eval()
         self.cls_head.eval()
 
-    def apply_weight(self, model, value):
+    @staticmethod
+    def apply_gaussian_weight(model, weight_value):
+        sampler = torch.distributions.Normal(loc=weight_value[0], scale=weight_value[1])
+        with torch.no_grad():
+            for name, param in model.named_parameters():
+                new_param = sampler.sample(param.shape)
+                param.copy_(new_param)
+        return
+
+    @staticmethod
+    def apply_weight(model, value):
         sampler = torch.distributions.uniform.Uniform(low=-value, high=value)
         with torch.no_grad():
             for name, param in model.named_parameters():
@@ -257,8 +275,14 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
         return
 
     def run_inference(self, model, weight_value, val_dataloader):
-        self.apply_weight(model, weight_value)
-        self.apply_weight(self.cls_head, weight_value)
+
+        if self.distribution == 'uniform':
+            self.apply_weight(model, weight_value)
+            self.apply_weight(self.cls_head, weight_value)
+        elif self.distribution == 'gaussian':
+            self.apply_gaussian_weight(model, weight_value)
+            self.apply_gaussian_weight(self.cls_head, weight_value)
+
         outputs = []
         encounter_nan = False
         for batch in val_dataloader:
