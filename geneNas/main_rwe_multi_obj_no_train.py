@@ -19,8 +19,12 @@ def parse_args():
     parser = LightningRecurrentRWE.add_learning_specific_args(parser)
     parser = MultiObjectiveOptimizer.add_optimizer_specific_args(parser)
     parser.add_argument("--seed", type=int, default=42)
+    # parser.add_argument("--task_name", type=str, default='trec')
 
     args = parser.parse_args()
+
+    args.task_name = 'trec'
+    args.model_name_or_path = 'distilbert-base-uncased'
 
     args.num_terminal = args.num_main + 1
     args.l_main = args.h_main * (args.max_arity - 1) + 1
