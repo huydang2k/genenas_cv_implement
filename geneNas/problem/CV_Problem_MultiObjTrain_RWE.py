@@ -176,7 +176,8 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
             weights_summary=self.weights_summary,
             checkpoint_callback=False,
             callbacks=early_stop,
-            max_epochs = self.hparams.max_epochs
+            max_epochs = self.hparams.max_epochs,
+            
         )
         return trainer
 
@@ -226,7 +227,6 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
                 trainer = self.setup_trainer()
                 # print('Set up trainer--')
                 trainer.fit(
-                    
                     model,
                     train_dataloaders=train_dataloader,
                     val_dataloaders=val_dataloader,
@@ -254,7 +254,6 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         return avg_metrics, -total_params
 
     def evaluate(self, chromosome: np.array):
-        print('Evaluate primitive chromosome')
         print(chromosome)
         symbols, _, _ = self.replace_value_with_symbol(chromosome)
         print(f"CHROMOSOME: {symbols}")

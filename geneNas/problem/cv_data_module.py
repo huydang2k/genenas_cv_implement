@@ -17,7 +17,7 @@ from collections import defaultdict
 import copy
 import torch.nn.functional as F
 import time
-
+from tqdm import tqdm
     
         
 class CV_DataModule(pl.LightningDataModule):
@@ -218,13 +218,13 @@ class CV_DataModule_RWE(CV_DataModule):
                 transform=self.convert_img,
                 target_transform = self.onehot
                 )
-            print('Precalculating')
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data',
                 train=False,
                 download=True,
                 transform=self.convert_img,
                 target_transform = self.onehot
-            )
+            ) 
+            print('Precalculating')
             start = time.time()
             self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size)
             self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size)
@@ -276,7 +276,7 @@ class precalculated_dataset(Dataset):
         feature_map = []
         labels = []
         one_hot = []
-        for i in range (0, len(dataset), batch_size):
+        for i in  tqdm(range(0, len(dataset), batch_size)):
             end = min(i + 1028, len(dataset))
             tensor = []
             for j in range(i, end):
@@ -346,7 +346,6 @@ class CV_DataModule_train(CV_DataModule):
                 target_transform = self.onehot
             )
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
-            self.dataset_ga['validation'] = copy.deepcopy(self.dataset_ga['test'])
         else:
             if self.task_name in ["cifar10"]:
                 self.dataset["test"] = self.dataset["validation"]

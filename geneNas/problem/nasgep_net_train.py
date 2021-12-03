@@ -8,7 +8,6 @@ import torch.nn as nn
 from network.nasgep_cell_net import NasgepCellNet
 from util.logger import ChromosomeLogger
 from typing import List
-from torch.utils.data import Dataset
 from argparse import ArgumentParser
 
 class NasgepNetRWE_multiObj(pl.LightningModule):
@@ -34,7 +33,6 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
         
         self.num_labels = num_labels
         self.num_val_dataloader = num_val_dataloader
-        self.cell_dropout = nn.Dropout(p=dropout)
         self.chromosome_logger: Optional[ChromosomeLogger] = None
         self.metric = None
       
@@ -62,15 +60,15 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
         for param in nasgepcell_net.parameters():
             param.requires_grad = False
        
-        self.add_module("nasgepcell_rwe_net", nasgepcell_net)
+        self.add_module("nasgep_cell_net", nasgepcell_net)
     
     def total_params(self):
-        return sum(p.numel() for p in self.nasgepcell_rwe_net.parameters())
+        return sum(p.numel() for p in self.nasgep_cell_net.parameters())
     
     def forward(self, feature_map, mode = 'validate'):
         if mode == 'inference':            
             x = self.embed(feature_map)
-            x = self.nasgepcell_rwe_net(x)
+            x = self.nasgep_cell_net(x)
             x = self.cls_head(x)
             return x
         
@@ -80,7 +78,7 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
                 x = self.embed(feature_map.cuda())
             except:
                 x = self.embed(feature_map.unsqueeze(0).cuda())
-            x = self.nasgepcell_rwe_net(x)
+            x = self.nasgep_cell_net(x)
             return x.squeeze()
         
         if mode == 'validate':
@@ -91,7 +89,7 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
     def configure_optimizers(self):
         "Prepare optimizer and schedule (linear warmup and decay)"
         embed = self.embed
-        model = self.nasgepcell_rwe_net
+        model = self.nasgep_cell_net
         cls = self.cls_head
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
@@ -211,11 +209,10 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
         parser.add_argument("--hidden_shape", default= [3,32,32], nargs='+', type=int)
         # parser.add_argument("--input_size", default= 32, type=int)
         parser.add_argument("--dropout", default=0.1, type=float)
-        parser.add_argument("--use_simple_cls", action="store_true")
         return parser
     
     def total_params(self):
-        return sum(p.numel() for p in self.nasgepcell_rwe_net.parameters())
+        return sum(p.numel() for p in self.nasgep_cell_net.parameters())
     
     def init_chromosome_logger(self, logger: ChromosomeLogger):
         self.chromosome_logger = logger
@@ -245,7 +242,7 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
 class NasgepNet_multiObj(NasgepNetRWE_multiObj):
     def __init__(self, num_labels: int, dropout: float = 0.1, hidden_shape: List = [3, 32, 32], N: int = 1, input_size: int = 32, num_val_dataloader: int = 1, **kwargs):
         super().__init__(num_labels, dropout=dropout, hidden_shape=hidden_shape, N=N, input_size=input_size, num_val_dataloader=num_val_dataloader, **kwargs)
-    
+        
     def init_model(self, cells, adfs):
         nasgepcell_net = NasgepCellNet(
             cells,
@@ -320,4 +317,10 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
         # scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
         # return [optimizer], [scheduler]
         return optimizer
-        
+    
+    def forward(self, feature_map):
+        x = self.embed(feature_map)
+        x = self.nasgepcell_net(x)
+        x = self.cls_head(x)
+        return x
+       

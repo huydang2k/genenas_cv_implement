@@ -4,7 +4,7 @@ from .abstract_problem import Problem
 from .function_set import CV_Main_FunctionSet, CV_ADF_FunctionSet
 from typing import List, Tuple
 import numpy as np
-from .cv_data_module import CV_DataModule_RWE, CV_DataModule_train
+from .cv_data_module import CV_DataModule_train
 from util.logger import ChromosomeLogger
 from evolution import GeneType
 import time
@@ -64,15 +64,7 @@ class CV_Problem_MultiObjTrain(Problem):
     def parse_chromosome(
         self, chromosome: np.array, main_function_set=CV_Main_FunctionSet,adf_function_set = CV_ADF_FunctionSet, return_adf=False
     ):
-        # self.replace_value_with_symbol(individual)
-        # print('parse chromosome')
-        # print('INFOR: num main {}, main length {}, adf length {}, num adf {}'.format(
-        #     self.hparams.num_main,
-        #     self.hparams.main_length,
-        #     self.hparams.num_adf,
-        #     self.hparams.adf_length
-        # ))
-        
+
         total_main_length = self.hparams.num_main * self.hparams.main_length
         # print('total main length ',total_main_length)
         all_main_func = []
@@ -85,6 +77,7 @@ class CV_Problem_MultiObjTrain(Problem):
             # print(chromosome[start_idx:end_idx])
             sub_chromosome = chromosome[start_idx:end_idx]
             adf = self.parse_tree(sub_chromosome, adf_function_set)
+            
             # print(type(adf))
             adf_func[f"a{i + 1}"] = adf
 
@@ -181,7 +174,8 @@ class CV_Problem_MultiObjTrain(Problem):
             weights_summary=self.weights_summary,
             checkpoint_callback=False,
             callbacks=early_stop,
-            max_epochs = self.hparams.max_epochs
+            max_epochs = self.hparams.max_epochs,
+            check_val_every_n_epoch=1,
         )
         return trainer
 
@@ -189,12 +183,8 @@ class CV_Problem_MultiObjTrain(Problem):
         
         self.chromsome_logger.log_chromosome(chromosome)
         mains, adfs = self.parse_chromosome(chromosome, return_adf=True)
-        # print('mains: ', mains, type(mains[0]))
-        # print('adfs:  ', adfs,  type(adfs))
-        # print(self.hparams)
         glue_pl = NasgepNet_multiObj(
             num_labels=self.dm.num_labels,
-            # eval_splits=self.dm.eval_splits,
             **vars(self.hparams),
         )
         glue_pl.init_metric(self.dm.metric)
@@ -213,9 +203,8 @@ class CV_Problem_MultiObjTrain(Problem):
         # print('SET up trainer-------')
         # model.reset_weights()
         _, train_dataloader, val_dataloader = next(self.dm.kfold(self.k_folds, None))
-  
         self.lr_finder(model, trainer, train_dataloader, val_dataloader)
-
+        
         for fold, train_dataloader, val_dataloader in self.dm.kfold(self.k_folds, None):
             start = time.time()
             try:
@@ -250,7 +239,6 @@ class CV_Problem_MultiObjTrain(Problem):
         return avg_metrics, -total_params
 
     def evaluate(self, chromosome: np.array):
-        print('Evaluate primitive chromosome')
         print(chromosome)
         symbols, _, _ = self.replace_value_with_symbol(chromosome)
         print(f"CHROMOSOME: {symbols}")
