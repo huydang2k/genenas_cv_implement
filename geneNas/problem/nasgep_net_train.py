@@ -191,9 +191,7 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
         self.log_dict(metrics, prog_bar=True)
         log_data = {f"val_loss": loss, "metrics": metrics, "epoch": self.current_epoch}
         self.chromosome_logger.log_epoch(log_data)
-        #hardcode 
-        acc = metrics['accuracy']
-        print(f'epoch: {self.current_epoch}, val_loss: {loss}, accuracy: {acc} ')
+      
         
 
     @staticmethod
@@ -326,4 +324,23 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
         x = self.nasgepcell_net(x)
         x = self.cls_head(x)
         return x
-       
+    
+    def validation_epoch_end(self, outputs):
+        # No multiple eval_splits
+        # Looking at you MNLI
+        
+        preds = torch.cat([x["preds"] for x in outputs]).detach().cpu().numpy()
+        labels = torch.cat([x["labels"] for x in outputs]).detach().cpu().numpy()
+        
+        # self.print(np.unique(preds, return_counts=True))
+        # self.print(np.unique(labels, return_counts=True))
+        loss = torch.stack([x["loss"] for x in outputs]).mean()
+        self.log("val_loss", loss, prog_bar=True)
+        metrics = self.metric.compute(predictions=preds, references=labels)
+        self.log_dict(metrics, prog_bar=True)
+        log_data = {f"val_loss": loss, "metrics": metrics, "epoch": self.current_epoch}
+        self.chromosome_logger.log_epoch(log_data)
+        #hardcode 
+        acc = metrics['accuracy']
+        
+        print(f'epoch: {self.current_epoch}, val_loss: {loss}, accuracy: {acc} ')
