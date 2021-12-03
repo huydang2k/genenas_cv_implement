@@ -29,7 +29,7 @@ class CV_Problem_MultiObjTrain(Problem):
         self.val_batch_size = args.eval_batch_size
         self.chromsome_logger = ChromosomeLogger()
         self.save_path = args.save_path
-        self.progress_bar = 1
+        self.progress_bar = args.progress_bar
         self.weights_summary = None
         self.early_stop = None
         self.k_folds = self.hparams.k_folds
