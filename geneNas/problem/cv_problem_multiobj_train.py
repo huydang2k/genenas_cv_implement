@@ -26,7 +26,7 @@ class CV_Problem_MultiObjTrain(Problem):
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
 
         self.chromsome_logger = ChromosomeLogger()
-        
+        self.save_path = args.save_path
         self.progress_bar = 0
         self.weights_summary = None
         self.early_stop = None
@@ -244,6 +244,8 @@ class CV_Problem_MultiObjTrain(Problem):
         print(f"CHROMOSOME: {symbols}")
         print('Set up model')
         glue_pl = self.setup_model(chromosome)
-        return self.perform_kfold(glue_pl)
+        self.perform_kfold(glue_pl)
+        
+        self.trainer.save_checkpoint(self.save_path)
 
     
