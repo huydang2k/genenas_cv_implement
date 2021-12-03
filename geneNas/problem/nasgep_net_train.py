@@ -191,7 +191,8 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
         self.log_dict(metrics, prog_bar=True)
         log_data = {f"val_loss": loss, "metrics": metrics, "epoch": self.current_epoch}
         self.chromosome_logger.log_epoch(log_data)
-        print(f'epoch: {self.current_epoch}, val_loss: {loss}, accuracy: {metrics} ')
+        acc = metrics['accuracy']
+        print(f'epoch: {self.current_epoch}, val_loss: {loss}, accuracy: {acc} ')
         
 
     @staticmethod
