@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import argparse
 import pytorch_lightning as pl
@@ -6,7 +7,7 @@ import numpy as np
 import pickle
 
 path = os.path.dirname(os.path.abspath(__file__))
-
+today = datetime.today().strftime("%Y-%m-%d")
 def input_chromosome(file: str):
     try:
         with open(file, 'rb') as f:
@@ -32,7 +33,8 @@ def parse_args():
     parser = pl.Trainer.add_argparse_args(parser)
     parser = CV_DataModule_train.add_argparse_args(parser)
     parser = CV_DataModule_train.add_cache_arguments(parser)
-    parser.add_argument("--file_name", default= '/chromosome', type=str)
+    parser.add_argument("--file_name", default= '/chromosome.txt', type=str)
+    parser.add_argument("--save_path", default = path + f"chromosome_trained_weights.gene_nas.{today}.pkl", type= str)
     parser = CV_Problem_MultiObjTrain.add_arguments(parser)
     parser = NasgepNet_multiObj.add_model_specific_args(parser)
     parser = NasgepNet_multiObj.add_learning_specific_args(parser)
