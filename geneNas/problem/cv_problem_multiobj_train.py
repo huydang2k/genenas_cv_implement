@@ -12,6 +12,7 @@ import torch
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import pytorch_lightning as pl
 from util.exception import NanException
+from torch.utils.data import DataLoader
 
 
 class CV_Problem_MultiObjTrain(Problem):
@@ -24,10 +25,11 @@ class CV_Problem_MultiObjTrain(Problem):
         self.dm.setup("fit")
 
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
-
+        self.train_batch_size = args.train_batch_size
+        self.val_batch_size = args.eval_batch_size
         self.chromsome_logger = ChromosomeLogger()
         self.save_path = args.save_path
-        self.progress_bar = 0
+        self.progress_bar = 1
         self.weights_summary = None
         self.early_stop = None
         self.k_folds = self.hparams.k_folds
@@ -162,6 +164,7 @@ class CV_Problem_MultiObjTrain(Problem):
                 patience=self.early_stop,
                 verbose=False,
                 mode="max",
+                
             )
             early_stop = [early_stop]
         else:
@@ -194,49 +197,20 @@ class CV_Problem_MultiObjTrain(Problem):
     
     
 
-    def perform_kfold(self, model):
-        
-        avg_metrics = 0
-        total_time = 0
-        # print('KFOLD  ',self.k_folds)
+    def train(self, model):
         trainer = self.setup_trainer()
-        # print('SET up trainer-------')
-        # model.reset_weights()
-        _, train_dataloader, val_dataloader = next(self.dm.kfold(self.k_folds, None))
+        train_dataloader = DataLoader(self.dm.dataset['train'], batch_size= self.train_batch_size, shuffle= True)
+        val_dataloader = DataLoader(self.dm.dataset['validation'], batch_size= self.val_batch_size)
         self.lr_finder(model, trainer, train_dataloader, val_dataloader)
+        trainer.fit(
+            model, 
+            train_dataloaders= train_dataloader,
+            val_dataloaders= val_dataloader,
+        )
+        # metrics = self.chromsome_logger.logs[-1]["data"][-1]["metrics"][
+        #             self.metric_name
+        # ]
         
-        for fold, train_dataloader, val_dataloader in self.dm.kfold(self.k_folds, None):
-            start = time.time()
-            try:
-                # model.reset_weights()
-                trainer = self.setup_trainer()
-                # print('Set up trainer--')
-                trainer.fit(
-                    model,
-                    train_dataloaders=train_dataloader,
-                    val_dataloaders=val_dataloader,
-                )
-                metrics = self.chromsome_logger.logs[-1]["data"][-1]["metrics"][
-                    self.metric_name
-                ]
-            except NanException as e:
-                # print(e)
-                log_data = {
-                    f"val_loss": 0.0,
-                    "metrics": {self.metric_name: 0.0},
-                    "epoch": -1,
-                }
-                metrics = log_data["metrics"][self.metric_name]
-            end = time.time()
-            avg_metrics += metrics
-            total_time += end - start
-            print(f"FOLD {fold}: {self.metric_name} {metrics} ; Time {end - start}")
-
-        # result = trainer.test()
-        avg_metrics = avg_metrics / self.k_folds
-        total_params = model.total_params()
-        print(f"FOLD AVG: {self.metric_name} {avg_metrics}; Total_params: {total_params} ; Time {total_time}")
-        return avg_metrics, -total_params
 
     def evaluate(self, chromosome: np.array):
         print(chromosome)
@@ -244,7 +218,7 @@ class CV_Problem_MultiObjTrain(Problem):
         print(f"CHROMOSOME: {symbols}")
         print('Set up model')
         glue_pl = self.setup_model(chromosome)
-        self.perform_kfold(glue_pl)
+        self.train(glue_pl)
         
         self.trainer.save_checkpoint(self.save_path)
 

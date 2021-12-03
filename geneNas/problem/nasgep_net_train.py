@@ -1,10 +1,11 @@
 from argparse import ArgumentParser
 from typing import Optional
 import torch.nn.functional as F
-from transformers import AdamW
+from torch.optim import Adam
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+from torch.optim.adam import Adam
 from network.nasgep_cell_net import NasgepCellNet
 from util.logger import ChromosomeLogger
 from typing import List
@@ -138,7 +139,7 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
                 "weight_decay": 0.0,
             },
         ]
-        optimizer = AdamW(
+        optimizer = Adam(
             optimizer_grouped_parameters,
             lr=self.hparams.learning_rate,
             eps=self.hparams.epsilon,
@@ -303,7 +304,7 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
                 "weight_decay": 0.0,
             },
         ]
-        optimizer = AdamW(
+        optimizer = Adam(
             optimizer_grouped_parameters,
             lr=self.hparams.learning_rate,
             eps=self.hparams.epsilon,
