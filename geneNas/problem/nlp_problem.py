@@ -236,10 +236,10 @@ class NLPProblemRWEMultiObjNoTrain(NLPProblemRWEMultiObj):
         if distribution == 'uniform':
             self.weight_values = [0.5, 1, 2, 3]
         elif distribution == 'gaussian':
-            self.weight_values = [(0.0, 1.0),
-                                  (0.0, 1.5),
-                                  (0.0, 2.0),
-                                  (0.0, 3.0)]
+            self.weight_values = [(0.0, 0.5),
+                                  (0.0, 1.0),
+                                  (0.0, 0.75),
+                                  (0.0, 1.25)]
 
         from .lit_recurrent import ClsHead, SimpleClsHead
 

@@ -96,10 +96,7 @@ class NasgepNet(pl.LightningModule):
         self.chromosome_logger = logger
 
     def forward(self, hiddens, **inputs):
-        print('Foward Net')
-        print('input ', inputs)
-        print('hidden ',hiddens)
-        print('Hidden shape: ',hiddens.shape)
+
         labels = None
         if "labels" in inputs:
             labels = inputs.pop("labels")
