@@ -74,15 +74,15 @@ class CV_DataModule(pl.LightningDataModule):
             ])
             
             self.dataset = {}
-            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data', 
+            self.dataset['train'] = tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data', 
                 train=True, 
                 download=True,
-                transform=self.convert_img)
+                transform=self.convert_img))
 
-            self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data',
+            self.dataset['test'] = tensor_dataset(getattr(torchvision.datasets, self.task_name.upper())(root='./data',
                 train=False,
                 download=True,
-                transform=self.convert_img
+                transform=self.convert_img)
                 )
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
         else:
@@ -265,6 +265,26 @@ class CV_DataModule_RWE(CV_DataModule):
                 pin_memory=self.pin_memory,
             ),
 
+class tensor_dataset(Dataset):
+    def __init__(self, dataset):
+        self.data = {}
+        self.combine(dataset= dataset)
+    
+    def combine(self, dataset):
+        feature_map = []
+        labels = []    
+        for i in  range(len(dataset)):
+            feature_map.append(dataset[i][0]['feature_map'])
+            labels.append(dataset[i][1])
+        self.data['feature_map'] = torch.stack(feature_map).to('cpu')
+        self.data['labels'] = torch.tensor(labels).to('cpu')
+    
+    def __len__(self):
+        return len(self.data['feature_map'])
+
+    def __getitem__(self, index):
+        return ({'feature_map': self.data['feature_map'][index]}, self.data['labels'][index])
+    
 class precalculated_dataset(Dataset):
     def __init__(self, dataset, model = None, batch_size = 2056):
         self.data = {}
@@ -277,7 +297,7 @@ class precalculated_dataset(Dataset):
         labels = []
         one_hot = []
         for i in  tqdm(range(0, len(dataset), batch_size)):
-            end = min(i + 1028, len(dataset))
+            end = min(i + batch_size, len(dataset))
             tensor = []
             for j in range(i, end):
                 tensor.append(dataset[j][0]['feature_map'])
