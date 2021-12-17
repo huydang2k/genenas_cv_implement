@@ -314,6 +314,8 @@ class precalculated_dataset(Dataset):
         self.data = {}
         if gpus> 0:
             model.cuda()
+        else:
+            model.cpu()
         self.precalculate(dataset, model, batch_size)
         
 
