@@ -19,17 +19,14 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         super().__init__(args)
         self.main_function_set = CV_Main_FunctionSet.return_func_name()
         self.adf_function_set = CV_ADF_FunctionSet.return_func_name()
-        
-
         self.chromsome_logger = ChromosomeLogger()
-        
-
         self.progress_bar = 0
         self.weights_summary = None
         self.early_stop = None
         self.k_folds = self.hparams.k_folds
-        
         self.weight_values = [0.5, 1, 2, 3]
+        self.gpus = self.hparams.gpus
+        
     def _get_chromosome_range(self) -> Tuple[int, int, int, int,int]:
         R1 = len(self.main_function_set)
         R2 = R1 + self.hparams.num_adf
@@ -60,39 +57,22 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
     def parse_chromosome(
         self, chromosome: np.array, main_function_set=CV_Main_FunctionSet,adf_function_set = CV_ADF_FunctionSet, return_adf=False
     ):
-        # self.replace_value_with_symbol(individual)
-        # print('parse chromosome')
-        # print('INFOR: num main {}, main length {}, adf length {}, num adf {}'.format(
-        #     self.hparams.num_main,
-        #     self.hparams.main_length,
-        #     self.hparams.num_adf,
-        #     self.hparams.adf_length
-        # ))
-        
+    
         total_main_length = self.hparams.num_main * self.hparams.main_length
-        # print('total main length ',total_main_length)
         all_main_func = []
         adf_func = {}
-        #Split into sublist, each present a main or an adf
         for i in range(self.hparams.num_adf):
             start_idx = total_main_length + i * self.hparams.adf_length
             end_idx = start_idx + self.hparams.adf_length
-            # print('Decode adf ',i)
-            # print(chromosome[start_idx:end_idx])
             sub_chromosome = chromosome[start_idx:end_idx]
             adf = self.parse_tree(sub_chromosome, adf_function_set)
-            # print(type(adf))
             adf_func[f"a{i + 1}"] = adf
 
         for i in range(self.hparams.num_main):
             start_idx = i * self.hparams.main_length
             end_idx = start_idx + self.hparams.main_length
-            # print('Decode main ',i)
-            # print(chromosome[start_idx:end_idx])
             sub_chromosome = chromosome[start_idx:end_idx]
             main_func = self.parse_tree(sub_chromosome, main_function_set)
-            # print(type(main_func))
-            # main_func.assign_adfs(main_func.root, adf_func)
             all_main_func.append(main_func)
 
         if return_adf:
@@ -164,6 +144,7 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
                 patience=self.early_stop,
                 verbose=False,
                 mode="max",
+                gpus= self.gpus,
             )
             early_stop = [early_stop]
         else:
@@ -172,7 +153,6 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         trainer = pl.Trainer.from_argparse_args(
             self.hparams,
             progress_bar_refresh_rate=self.progress_bar,
-            # automatic_optimization=False,
             weights_summary=self.weights_summary,
             checkpoint_callback=False,
             callbacks=early_stop,
@@ -186,19 +166,14 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
         self.chromsome_logger.log_chromosome(chromosome)
         mains, adfs = self.parse_chromosome(chromosome, return_adf=True)
-        # print('mains: ', mains, type(mains[0]))
-        # print('adfs:  ', adfs,  type(adfs))
-        # print(self.hparams)
         glue_pl = NasgepNetRWE_multiObj(
             num_labels=self.dm.num_labels,
             # eval_splits=self.dm.eval_splits,
             **vars(self.hparams),
         )
         glue_pl.init_metric(self.dm.metric)
-
         glue_pl.init_model(mains, adfs)
         glue_pl.init_chromosome_logger(self.chromsome_logger)
-        
         #precalculate data
         self.dm.get_model(glue_pl)
         self.dm.prepare_data()
@@ -212,10 +187,8 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         
         avg_metrics = 0
         total_time = 0
-        # print('KFOLD  ',self.k_folds)
         trainer = self.setup_trainer()
         # print('SET up trainer-------')
-        # model.reset_weights()
         _, train_dataloader, val_dataloader = next(self.dm.kfold(self.k_folds, None))
   
         self.lr_finder(model, trainer, train_dataloader, val_dataloader)
@@ -223,9 +196,7 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         for fold, train_dataloader, val_dataloader in self.dm.kfold(self.k_folds, None):
             start = time.time()
             try:
-                # model.reset_weights()
                 trainer = self.setup_trainer()
-                # print('Set up trainer--')
                 trainer.fit(
                     model,
                     train_dataloaders=train_dataloader,
@@ -234,8 +205,7 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
                 metrics = self.chromsome_logger.logs[-1]["data"][-1]["metrics"][
                     self.metric_name
                 ]
-            except NanException as e:
-                # print(e)
+            except NanException:
                 log_data = {
                     f"val_loss": 0.0,
                     "metrics": {self.metric_name: 0.0},
@@ -247,7 +217,6 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
             total_time += end - start
             print(f"FOLD {fold}: {self.metric_name} {metrics} ; Time {end - start}")
 
-        # result = trainer.test()
         avg_metrics = avg_metrics / self.k_folds
         total_params = model.total_params()
         print(f"FOLD AVG: {self.metric_name} {avg_metrics}; Total_params: {total_params} ; Time {total_time}")
