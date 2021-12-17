@@ -200,9 +200,12 @@ class CV_DataModule_RWE(CV_DataModule):
             eval_batch_size= eval_batch_size,
             cache_dataset= cache_dataset,
             cache_dataset_filepath= cache_dataset_filepath,
-            pin_memory= False,
+            pin_memory= pin_memory,
             num_workers= num_workers,
         )
+    
+    def setup_device(self, gpus:int =1):
+        self.gpus = gpus
     
     def convert_img(self,img):
         return {'feature_map': self.transform(img)}
@@ -230,8 +233,8 @@ class CV_DataModule_RWE(CV_DataModule):
             ) 
             print('Precalculating')
             start = time.time()
-            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size)
-            self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size)
+            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, self.gpus)
+            self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size, self.gpus)
             end = time.time()
             print('Finish precalculating, Time: ', end - start)
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
@@ -307,9 +310,10 @@ class tensor_dataset(Dataset):
         return ({'feature_map': self.data['feature_map'][index]}, self.data['labels'][index])
     
 class precalculated_dataset(Dataset):
-    def __init__(self, dataset, model = None, batch_size = 2056):
+    def __init__(self, dataset, model = None, batch_size = 2056, gpus:int= 1):
         self.data = {}
-        model.cuda()
+        if gpus> 0:
+            model.cuda()
         self.precalculate(dataset, model, batch_size)
         
 

@@ -163,6 +163,7 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
 
     def setup_model(self, chromosome):
         self.dm = CV_DataModule_RWE.from_argparse_args(self.hparams)
+        self.dm.setup_device(self.gpus)
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
         self.chromsome_logger.log_chromosome(chromosome)
         mains, adfs = self.parse_chromosome(chromosome, return_adf=True)
