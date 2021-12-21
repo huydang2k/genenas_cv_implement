@@ -73,21 +73,33 @@ class CV_DataModule(pl.LightningDataModule):
         return {'feature_map':self.transform(img)}
     
     def setup(self, stage):
-        
+        val_size = 1000
         if not self.cache_dataset:
             print('not cache')
             self.dataset = {}
-            self.dataset['train'] = tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            temp_train_dataset = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
                 train=True, 
                 download= True,
-                transform=self.convert_img))
-
+                transform=self.convert_img)
+            train_indices, val_indices = train_test_split(list(range(len(temp_train_dataset.targets))), test_size=val_size, stratify=temp_train_dataset.targets)
+            train_subdataset = torch.utils.data.Subset(temp_train_dataset, train_indices)
+            val_subdataset = torch.utils.data.Subset(temp_train_dataset, val_indices)
+            self.dataset['train'] = tensor_dataset(train_subdataset)
+            #Create DataLoader
+          
+            self.dataset['validation'] = tensor_dataset(val_subdataset)
+            # self.dataset['train'] = tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            #     train=True, 
+            #     download= True,
+            #     transform=self.convert_img))
+            print(type(self.dataset['validation']))
             self.dataset['test'] = tensor_dataset(getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
                 train=False,
 
                 transform=self.convert_img)
                 )
-            self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
+            print(type(self.dataset['test'] ))
+            # self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
         else:
             print('cache')
             print(self.cached_dataset_filepath)
