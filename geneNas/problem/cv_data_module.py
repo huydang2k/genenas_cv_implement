@@ -232,12 +232,12 @@ class CV_DataModule_RWE(CV_DataModule):
             print('not cache')
             self.dataset = {}
             self.dataset_ga = {}
-            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
                 train=True, 
                 download=True,
                 transform=self.convert_img,
                 target_transform = self.onehot
-                ), self.train_percentage)
+                )
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
                 train=False,
                 download=True,
@@ -257,11 +257,11 @@ class CV_DataModule_RWE(CV_DataModule):
             print('not cache')
             self.dataset = {}
             self.dataset_ga = {}
-            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
+            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
                 train=True, 
                 transform=self.convert_img,
                 target_transform = self.onehot
-                ), self.train_percentage)
+                )
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root=self.cached_dataset_filepath,
                 train=False,
                 transform=self.convert_img,
