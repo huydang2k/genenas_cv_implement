@@ -92,13 +92,12 @@ class CV_DataModule(pl.LightningDataModule):
             #     train=True, 
             #     download= True,
             #     transform=self.convert_img))
-            print(type(self.dataset['validation']))
+            
             self.dataset['test'] = tensor_dataset(getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
                 train=False,
 
                 transform=self.convert_img)
                 )
-            print(type(self.dataset['test'] ))
             # self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
         else:
             print('cache')
