@@ -21,18 +21,11 @@ from tqdm import tqdm
 import numpy as np
 
 def split_stratify(dataset: Dataset, test_size):
-    try:
-        _, valid_idx= train_test_split(
-        np.arange(dataset.__len__()),
-        test_size= test_size,
-        shuffle=True,
-        stratify= dataset.data['labels'])
-    except:
-        _, valid_idx= train_test_split(
-        np.arange(dataset.__len__()),
-        test_size= test_size,
-        shuffle=True,
-        stratify= dataset.data['labels'].numpy())
+    _, valid_idx= train_test_split(
+    np.arange(dataset.__len__()),
+    test_size= test_size,
+    shuffle=True,
+    stratify= dataset.data['labels'])
     return torch.utils.data.Subset(dataset, valid_idx)
 class CV_DataModule(pl.LightningDataModule):
     metrics_names = {
@@ -253,7 +246,7 @@ class CV_DataModule_RWE(CV_DataModule):
             ) 
             print('Precalculating')
             start = time.time()
-            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, self.gpus)
+            self.dataset_ga['train'] = split_stratify(precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, self.gpus), self.train_percentage)
             self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size, self.gpus)
             end = time.time()
             print('Finish precalculating, Time: ', end - start)
@@ -276,7 +269,7 @@ class CV_DataModule_RWE(CV_DataModule):
             ) 
             print('Precalculating')
             start = time.time()
-            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, gpus = self.gpus)
+            self.dataset_ga['train'] = split_stratify(precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, gpus = self.gpus), self.train_percentage)
             self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size, gpus = self.gpus)
             end = time.time()
             print('Finish precalculating, Time: ', end - start)
@@ -396,13 +389,12 @@ class CV_DataModule_train(CV_DataModule):
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
             
             self.dataset = {}
-            self.dataset_ga = {}
-            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            self.dataset['train'] = split_stratify(tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
                 train=True, 
                 download=True,
                 transform=self.convert_img,
                 target_transform = self.onehot
-                ), self.train_percentage)
+                ), self.train_percentage))
            
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
                 train=False,
@@ -414,12 +406,11 @@ class CV_DataModule_train(CV_DataModule):
         else:
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
             self.dataset = {}
-            self.dataset_ga = {}
-            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
+            self.dataset['train'] = split_stratify(tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
                 train=True, 
                 transform=self.convert_img,
                 target_transform = self.onehot
-                ), self.train_percentage)
+                ), self.train_percentage))
            
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root=self.cached_dataset_filepath,
                 train=False,
