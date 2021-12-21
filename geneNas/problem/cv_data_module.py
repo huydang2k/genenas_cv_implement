@@ -92,9 +92,9 @@ class CV_DataModule(pl.LightningDataModule):
             print('cache')
             print(self.cached_dataset_filepath)
             self.dataset = {}
-            self.dataset['train'] = tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
+            self.dataset['train'] = tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, train=True, 
                 transform=self.convert_img))
-
+            print(len(self.dataset['train']))
             self.dataset['test'] = tensor_dataset(getattr(torchvision.datasets, self.task_name.upper())(root=self.cached_dataset_filepath,
                 train=False,
                 transform=self.convert_img)
@@ -150,7 +150,7 @@ class CV_DataModule(pl.LightningDataModule):
                 num_workers= self.num_workers,
                 pin_memory=self.pin_memory,
             ), DataLoader(
-                self.train_dataset,
+                self.val_dataset,
                 batch_size=self.eval_batch_size,
                 sampler=val_subsampler,
                 num_workers= self.num_workers,
@@ -241,7 +241,7 @@ class CV_DataModule_RWE(CV_DataModule):
             self.dataset_ga['validation'] = copy.deepcopy(self.dataset_ga['test'])
         else:
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
-            print('not cache')
+            
             self.dataset = {}
             self.dataset_ga = {}
             self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
@@ -282,7 +282,7 @@ class CV_DataModule_RWE(CV_DataModule):
                 num_workers= self.num_workers,
                 pin_memory=self.pin_memory,
             ), DataLoader(
-                self.dataset_ga['train'],
+                self.dataset_ga['validation'],
                 batch_size=self.eval_batch_size,
                 sampler=val_subsampler,
                 num_workers= self.num_workers,

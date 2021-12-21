@@ -139,13 +139,13 @@ class CV_Problem_MultiObjNoTrain(Problem):
     def total_params(model):
         return sum(p.numel() for p in model.parameters())
 
-    def lr_finder(self, model, trainer, train_dataloader, val_dataloaders):
-        lr_finder = trainer.tuner.lr_find(
-            model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders
-        )
-        new_lr = lr_finder.suggestion()
-        model.hparams.lr = new_lr
-        print(f"New optimal lr: {new_lr}")
+    # def lr_finder(self, model, trainer, train_dataloader, val_dataloaders):
+    #     lr_finder = trainer.tuner.lr_find(
+    #         model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders
+    #     )
+    #     new_lr = lr_finder.suggestion()
+    #     model.hparams.lr = new_lr
+    #     print(f"New optimal lr: {new_lr}")
     def apply_weight(self, model, value):
         sampler = torch.distributions.uniform.Uniform(low=-value, high=value)
         with torch.no_grad():
@@ -178,6 +178,8 @@ class CV_Problem_MultiObjNoTrain(Problem):
             weights_summary=self.weights_summary,
             checkpoint_callback=False,
             callbacks=early_stop,
+            limit_train_batches=0,
+            limit_val_batches=0
         )
         return trainer
 
