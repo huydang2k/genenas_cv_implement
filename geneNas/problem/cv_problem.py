@@ -22,7 +22,7 @@ class CV_Problem_MultiObjNoTrain(Problem):
         self.dm = CV_DataModule.from_argparse_args(self.hparams)
         self.dm.prepare_data()
         self.dm.setup("fit")
-        self.gpus = self.hparams.gpus
+
         self.chromsome_logger = ChromosomeLogger()
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
         
@@ -197,16 +197,12 @@ class CV_Problem_MultiObjNoTrain(Problem):
     
     def run_inference(self, model, weight_value, val_dataloader):
         self.apply_weight(model, weight_value)
-        if (self.gpus == 1):
-            model.cuda()
+        model.cuda()
         outputs = []
         encounter_nan = False
         for batch in tqdm(val_dataloader):
             labels = batch[1]
-            if (self.gpus == 1):
-                batch =  batch[0]['feature_map'].cuda()
-            else:
-                batch =  batch[0]['feature_map']
+            batch =  batch[0]['feature_map'].cuda()
             logits = model(batch)
 
             if self.dm.num_labels > 1:
