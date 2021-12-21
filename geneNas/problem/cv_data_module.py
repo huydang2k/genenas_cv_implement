@@ -18,7 +18,15 @@ import copy
 import torch.nn.functional as F
 import time
 from tqdm import tqdm
-    
+import numpy as np
+
+def split_stratify(dataset: Dataset, test_size):
+    _, valid_idx= train_test_split(
+    np.arange(dataset.__len__()),
+    test_size= test_size,
+    shuffle=True,
+    stratify= dataset.data['labels'])
+    return torch.utils.data.Subset(dataset, valid_idx) 
         
 class CV_DataModule(pl.LightningDataModule):
     metrics_names = {
@@ -77,10 +85,10 @@ class CV_DataModule(pl.LightningDataModule):
         if not self.cache_dataset:
             print('not cache')
             self.dataset = {}
-            self.dataset['train'] = tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            self.dataset['train'] = split_stratify(tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
                 train=True, 
                 download= True,
-                transform=self.convert_img))
+                transform=self.convert_img)))
 
             self.dataset['test'] = tensor_dataset(getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
                 train=False,
@@ -92,8 +100,8 @@ class CV_DataModule(pl.LightningDataModule):
             print('cache')
             print(self.cached_dataset_filepath)
             self.dataset = {}
-            self.dataset['train'] = tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, train=True, 
-                transform=self.convert_img))
+            self.dataset['train'] = split_stratify(tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
+                transform=self.convert_img)))
 
             self.dataset['test'] = tensor_dataset(getattr(torchvision.datasets, self.task_name.upper())(root=self.cached_dataset_filepath,
                 train=False,
@@ -150,7 +158,7 @@ class CV_DataModule(pl.LightningDataModule):
                 num_workers= self.num_workers,
                 pin_memory=self.pin_memory,
             ), DataLoader(
-                self.val_dataset,
+                self.train_dataset,
                 batch_size=self.eval_batch_size,
                 sampler=val_subsampler,
                 num_workers= self.num_workers,
@@ -173,7 +181,7 @@ class CV_DataModule(pl.LightningDataModule):
             "--cache-dataset-filepath", type=str, default="", help="Cached dataset path"
         )
         parser.add_argument("--k-folds", type=int, default=10)
-
+        parser.add_argument("--train-percent", type=float, default=0.1)
         return parser 
     
 def one_hot_labels(y, num_labels):
@@ -219,12 +227,12 @@ class CV_DataModule_RWE(CV_DataModule):
             print('not cache')
             self.dataset = {}
             self.dataset_ga = {}
-            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
                 train=True, 
                 download=True,
                 transform=self.convert_img,
                 target_transform = self.onehot
-                )
+                ))
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
                 train=False,
                 download=True,
@@ -241,14 +249,14 @@ class CV_DataModule_RWE(CV_DataModule):
             self.dataset_ga['validation'] = copy.deepcopy(self.dataset_ga['test'])
         else:
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
-            
+            print('not cache')
             self.dataset = {}
             self.dataset_ga = {}
-            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
+            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
                 train=True, 
                 transform=self.convert_img,
                 target_transform = self.onehot
-                )
+                ))
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root=self.cached_dataset_filepath,
                 train=False,
                 transform=self.convert_img,
@@ -256,8 +264,8 @@ class CV_DataModule_RWE(CV_DataModule):
             ) 
             print('Precalculating')
             start = time.time()
-            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, gpus = self.gpus)
-            self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size, gpus = self.gpus)
+            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size)
+            self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size)
             end = time.time()
             print('Finish precalculating, Time: ', end - start)
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
@@ -282,7 +290,7 @@ class CV_DataModule_RWE(CV_DataModule):
                 num_workers= self.num_workers,
                 pin_memory=self.pin_memory,
             ), DataLoader(
-                self.dataset_ga['validation'],
+                self.dataset_ga['train'],
                 batch_size=self.eval_batch_size,
                 sampler=val_subsampler,
                 num_workers= self.num_workers,
@@ -374,12 +382,12 @@ class CV_DataModule_train(CV_DataModule):
             
             self.dataset = {}
             self.dataset_ga = {}
-            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
                 train=True, 
                 download=True,
                 transform=self.convert_img,
                 target_transform = self.onehot
-                )
+                ))
            
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
                 train=False,
@@ -392,11 +400,11 @@ class CV_DataModule_train(CV_DataModule):
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
             self.dataset = {}
             self.dataset_ga = {}
-            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
+            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
                 train=True, 
                 transform=self.convert_img,
                 target_transform = self.onehot
-                )
+                ))
            
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root=self.cached_dataset_filepath,
                 train=False,

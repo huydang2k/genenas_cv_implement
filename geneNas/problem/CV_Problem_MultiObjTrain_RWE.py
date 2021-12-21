@@ -116,13 +116,13 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
     def total_params(model):
         return sum(p.numel() for p in model.parameters())
 
-    # def lr_finder(self, model, trainer, train_dataloader, val_dataloaders):
-    #     lr_finder = trainer.tuner.lr_find(
-    #         model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloaders
-    #     )
-    #     new_lr = lr_finder.suggestion()
-    #     model.hparams.lr = new_lr
-    #     print(f"New optimal lr: {new_lr}")
+    def lr_finder(self, model, trainer, train_dataloader, val_dataloaders):
+        lr_finder = trainer.tuner.lr_find(
+            model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloaders
+        )
+        new_lr = lr_finder.suggestion()
+        model.hparams.lr = new_lr
+        print(f"New optimal lr: {new_lr}")
         
     def apply_weight(self, model, value):
         sampler = torch.distributions.uniform.Uniform(low=-value, high=value)
@@ -157,14 +157,12 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
             checkpoint_callback=False,
             callbacks=early_stop,
             max_epochs = self.hparams.max_epochs,
-            limit_train_batches=0,
-            limit_val_batches=0
+            
         )
         return trainer
 
     def setup_model(self, chromosome):
         self.dm = CV_DataModule_RWE.from_argparse_args(self.hparams)
-        self.dm.setup_device(self.gpus)
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
         self.chromsome_logger.log_chromosome(chromosome)
         mains, adfs = self.parse_chromosome(chromosome, return_adf=True)
@@ -193,7 +191,7 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         # print('SET up trainer-------')
         _, train_dataloader, val_dataloader = next(self.dm.kfold(self.k_folds, None))
   
-        # self.lr_finder(model, trainer, train_dataloader, val_dataloader)
+        self.lr_finder(model, trainer, train_dataloader, val_dataloader)
 
         for fold, train_dataloader, val_dataloader in self.dm.kfold(self.k_folds, None):
             start = time.time()

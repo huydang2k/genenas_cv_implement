@@ -12,8 +12,6 @@ import torch
 import torch.nn as nn
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import pytorch_lightning as pl
-from torch.nn import functional as F
-from tqdm import tqdm
 class CV_Problem_MultiObjNoTrain(Problem):
     def __init__(self, args):
         super().__init__(args)
@@ -22,7 +20,7 @@ class CV_Problem_MultiObjNoTrain(Problem):
         self.dm = CV_DataModule.from_argparse_args(self.hparams)
         self.dm.prepare_data()
         self.dm.setup("fit")
-        self.gpus = self.hparams.gpus
+
         self.chromsome_logger = ChromosomeLogger()
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
         
@@ -139,13 +137,13 @@ class CV_Problem_MultiObjNoTrain(Problem):
     def total_params(model):
         return sum(p.numel() for p in model.parameters())
 
-    # def lr_finder(self, model, trainer, train_dataloader, val_dataloaders):
-    #     lr_finder = trainer.tuner.lr_find(
-    #         model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders
-    #     )
-    #     new_lr = lr_finder.suggestion()
-    #     model.hparams.lr = new_lr
-    #     print(f"New optimal lr: {new_lr}")
+    def lr_finder(self, model, trainer, train_dataloader, val_dataloaders):
+        lr_finder = trainer.tuner.lr_find(
+            model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders
+        )
+        new_lr = lr_finder.suggestion()
+        model.hparams.lr = new_lr
+        print(f"New optimal lr: {new_lr}")
     def apply_weight(self, model, value):
         sampler = torch.distributions.uniform.Uniform(low=-value, high=value)
         with torch.no_grad():
@@ -178,8 +176,6 @@ class CV_Problem_MultiObjNoTrain(Problem):
             weights_summary=self.weights_summary,
             checkpoint_callback=False,
             callbacks=early_stop,
-            limit_train_batches=0,
-            limit_val_batches=0
         )
         return trainer
 
@@ -199,17 +195,35 @@ class CV_Problem_MultiObjNoTrain(Problem):
     
     def run_inference(self, model, weight_value, val_dataloader):
         self.apply_weight(model, weight_value)
-        if (self.gpus == 1):
-            model.cuda()
+        
         outputs = []
         encounter_nan = False
-        for batch in tqdm(val_dataloader):
+        for batch in val_dataloader:
             labels = batch[1]
-            if (self.gpus == 1):
-                batch =  batch[0]['feature_map'].cuda()
-            else:
-                batch =  batch[0]['feature_map']
-            logits = model(batch)
+            
+            
+            # batch = {k: v.cuda() for k, v in batch.items()}
+            # batch =  batch[0].cuda()
+            batch =  batch[0]['feature_map']#note
+            with torch.cuda.amp.autocast():
+                logits = model(batch)
+                if logits.isnan().any():
+                    print(f"NaN after NasgepNet")
+                    encounter_nan = True
+                    break
+
+                if self.dm.num_labels == 1:
+                    #  We are doing regression
+                    loss_fct = nn.MSELoss()
+                    loss = loss_fct(logits.view(-1), labels.view(-1))
+                else:
+                    loss_fct = nn.CrossEntropyLoss()
+                    loss = loss_fct(logits.view(-1, self.dm.num_labels), labels.view(-1))
+
+                if logits.isnan().any():
+                    print(f"NaN after CLS head")
+                    encounter_nan = True
+                    break
 
             if self.dm.num_labels > 1:
                 preds = torch.argmax(logits, dim=1)
@@ -220,15 +234,19 @@ class CV_Problem_MultiObjNoTrain(Problem):
 
             outputs.append({"preds": preds, "labels": labels})
 
-
-        preds = torch.cat([x["preds"] for x in outputs]).detach().cpu().numpy()
-        labels = torch.cat([x["labels"] for x in outputs]).detach().cpu().numpy()
-        
-
-        metrics = self.metric.compute(predictions=preds, references=labels)[
-            self.metric_name
-        ]
-        
+        if not encounter_nan:
+            preds = torch.cat([x["preds"] for x in outputs]).detach().cpu().numpy()
+            labels = torch.cat([x["labels"] for x in outputs]).detach().cpu().numpy()
+            if np.all(preds == preds[0]):
+                metrics = 0
+            else:
+                print(np.unique(preds, return_counts=True))
+                print(np.unique(labels, return_counts=True))
+                metrics = self.metric.compute(predictions=preds, references=labels)[
+                    self.metric_name
+                ]
+        else:
+            metrics = 0
         return metrics
 
 
@@ -238,6 +256,7 @@ class CV_Problem_MultiObjNoTrain(Problem):
         total_time = 0
 
         for fold, _, val_dataloader in self.dm.kfold(self.k_folds, None):
+            print(len(val_dataloader))
             start = time.time()
             metrics = [
                 self.run_inference(model, wval, val_dataloader)
