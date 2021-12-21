@@ -26,8 +26,7 @@ def split_stratify(dataset: Dataset, test_size):
     test_size= test_size,
     shuffle=True,
     stratify= dataset.data['labels'])
-    return torch.utils.data.Subset(dataset, valid_idx) 
-        
+    return torch.utils.data.Subset(dataset, valid_idx)
 class CV_DataModule(pl.LightningDataModule):
     metrics_names = {
         "cifar10": "accuracy",
@@ -264,8 +263,8 @@ class CV_DataModule_RWE(CV_DataModule):
             ) 
             print('Precalculating')
             start = time.time()
-            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size)
-            self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size)
+            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, gpus = self.gpus)
+            self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size, gpus = self.gpus)
             end = time.time()
             print('Finish precalculating, Time: ', end - start)
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
