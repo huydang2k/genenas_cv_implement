@@ -312,9 +312,10 @@ class tensor_dataset(Dataset):
         labels = []    
         for i in  range(len(dataset)):
             feature_map.append(dataset[i][0]['feature_map'])
-            labels.append(dataset[i][1])
+            labels.append(dataset[i][1]['labels'])
         self.data['feature_map'] = torch.stack(feature_map).to('cpu')
         self.data['labels'] = torch.tensor(labels).to('cpu')
+        
     
     def __len__(self):
         return len(self.data['feature_map'])
