@@ -246,7 +246,7 @@ class CV_DataModule_RWE(CV_DataModule):
             ) 
             print('Precalculating')
             start = time.time()
-            self.dataset_ga['train'] = split_stratify(precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, self.gpus), self.train_percentage)
+            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, self.gpus), self.train_percentage
             self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size, self.gpus)
             end = time.time()
             print('Finish precalculating, Time: ', end - start)
@@ -269,7 +269,7 @@ class CV_DataModule_RWE(CV_DataModule):
             ) 
             print('Precalculating')
             start = time.time()
-            self.dataset_ga['train'] = split_stratify(precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, gpus = self.gpus), self.train_percentage)
+            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, gpus = self.gpus), self.train_percentage
             self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size, gpus = self.gpus)
             end = time.time()
             print('Finish precalculating, Time: ', end - start)
