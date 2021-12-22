@@ -259,11 +259,8 @@ class CV_Problem_MultiObjNoTrain(Problem):
 
     def evaluate(self, chromosome: np.array):
         #fix here
-       
-        print('Evaluate primitive chrosome')
-        print(chromosome)
-        
+               
         symbols, _, _ = self.replace_value_with_symbol(chromosome)
         print(f"CHROMOSOME: {symbols}")
         nasgep_model = self.setup_model(chromosome)
-        return self.perform_kfold(nasgep_model)
+        return self.perform_kfold(nasgep_model), CV_Problem_MultiObjNoTrain.total_params(nasgep_model)

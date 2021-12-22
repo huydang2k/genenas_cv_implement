@@ -38,10 +38,10 @@ class Optimizer:
             # first evaluation
             print('First population')
             fitness = [problem.evaluate(population[i, :]) for i in range(self.N)]
+            print(fitness)
             print('Finish population')
             start_generation = 1
         else:
-            print('load')
             save_dict = Optimizer.load_checkpoint(self.save_dict_path)
             population = save_dict["population"]
             fitness = save_dict["fitness"]
