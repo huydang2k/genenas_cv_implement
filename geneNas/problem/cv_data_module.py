@@ -26,7 +26,8 @@ def split_stratify(dataset: Dataset, test_size):
     test_size= test_size,
     shuffle=True,
     stratify= dataset.data['labels'])
-    return torch.utils.data.Subset(dataset, valid_idx)
+    return torch.utils.data.Subset(dataset, valid_idx)   
+        
 class CV_DataModule(pl.LightningDataModule):
     metrics_names = {
         "cifar10": "accuracy",
@@ -41,8 +42,8 @@ class CV_DataModule(pl.LightningDataModule):
     }
     def __init__(
         self,
-        train_percentage,
         task_name: str,
+        train_percentage: float,
         input_shape : Tuple[int,int,int] = [3,32,32],
         input_size:int = 32,
         train_batch_size: int = 32,
@@ -54,6 +55,7 @@ class CV_DataModule(pl.LightningDataModule):
         **kwargs,
     ):
         super().__init__()
+        self.train_pecentage = train_percentage
         self.task_name = task_name
         self.train_batch_size = train_batch_size
         self.eval_batch_size = eval_batch_size
@@ -62,7 +64,6 @@ class CV_DataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.pin_memory = pin_memory
 
-        self.train_percentage = train_percentage
         self.cached_train = None
         self.cached_vals = None
         self.cache_dataset = cache_dataset
@@ -86,10 +87,10 @@ class CV_DataModule(pl.LightningDataModule):
         if not self.cache_dataset:
             print('not cache')
             self.dataset = {}
-            self.dataset['train'] = split_stratify(tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            self.dataset['train'] = tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
                 train=True, 
                 download= True,
-                transform=self.convert_img)), self.train_percentage)
+                transform=self.convert_img))
 
             self.dataset['test'] = tensor_dataset(getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
                 train=False,
@@ -101,8 +102,8 @@ class CV_DataModule(pl.LightningDataModule):
             print('cache')
             print(self.cached_dataset_filepath)
             self.dataset = {}
-            self.dataset['train'] = split_stratify(tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
-                transform=self.convert_img)), self.train_percentage)
+            self.dataset['train'] = tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
+                transform=self.convert_img))
 
             self.dataset['test'] = tensor_dataset(getattr(torchvision.datasets, self.task_name.upper())(root=self.cached_dataset_filepath,
                 train=False,
@@ -182,18 +183,16 @@ class CV_DataModule(pl.LightningDataModule):
             "--cache-dataset-filepath", type=str, default="", help="Cached dataset path"
         )
         parser.add_argument("--k-folds", type=int, default=10)
-        parser.add_argument("--train_percentage", type=float, default=0.1)
+        parser.add_argument("--train_percentage", type= float, default= 0.1)
         return parser 
-    
-    
     
 def one_hot_labels(y, num_labels):
     return {'one_hot': F.one_hot(torch.tensor(y), num_labels).type(torch.float), 'labels': y}  
 class CV_DataModule_RWE(CV_DataModule):
     def __init__(
         self,
-        train_percentage: float,
         task_name: str,
+        train_percentage: float,
         input_shape : Tuple[int,int,int] = [3,32,32],
         input_size:int = 32,
         train_batch_size: int = 32,
@@ -232,12 +231,12 @@ class CV_DataModule_RWE(CV_DataModule):
             print('not cache')
             self.dataset = {}
             self.dataset_ga = {}
-            self.dataset['train'] = split_stratify(tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
                 train=True, 
                 download=True,
                 transform=self.convert_img,
                 target_transform = self.onehot
-                )), self.train_percentage)
+                )
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
                 train=False,
                 download=True,
@@ -246,7 +245,7 @@ class CV_DataModule_RWE(CV_DataModule):
             ) 
             print('Precalculating')
             start = time.time()
-            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, self.gpus), self.train_percentage
+            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, self.gpus)
             self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size, self.gpus)
             end = time.time()
             print('Finish precalculating, Time: ', end - start)
@@ -257,11 +256,11 @@ class CV_DataModule_RWE(CV_DataModule):
             print('not cache')
             self.dataset = {}
             self.dataset_ga = {}
-            self.dataset['train'] = split_stratify(tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
+            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
                 train=True, 
                 transform=self.convert_img,
                 target_transform = self.onehot
-                )), self.train_percentage)
+                )
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root=self.cached_dataset_filepath,
                 train=False,
                 transform=self.convert_img,
@@ -269,7 +268,7 @@ class CV_DataModule_RWE(CV_DataModule):
             ) 
             print('Precalculating')
             start = time.time()
-            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, gpus = self.gpus), self.train_percentage
+            self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, gpus = self.gpus)
             self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size, gpus = self.gpus)
             end = time.time()
             print('Finish precalculating, Time: ', end - start)
@@ -312,10 +311,9 @@ class tensor_dataset(Dataset):
         labels = []    
         for i in  range(len(dataset)):
             feature_map.append(dataset[i][0]['feature_map'])
-            labels.append(dataset[i][1]['labels'])
+            labels.append(dataset[i][1])
         self.data['feature_map'] = torch.stack(feature_map).to('cpu')
         self.data['labels'] = torch.tensor(labels).to('cpu')
-        
     
     def __len__(self):
         return len(self.data['feature_map'])
@@ -362,8 +360,8 @@ class precalculated_dataset(Dataset):
 
 class CV_DataModule_train(CV_DataModule):
     def __init__(self, 
+                 task_name: str,
                  train_percentage: float,
-                 task_name: str, 
                  input_shape: Tuple[int, int, int] = [3, 32, 32], 
                  input_size: int = 32, 
                  train_batch_size: int = 32, 
@@ -372,9 +370,8 @@ class CV_DataModule_train(CV_DataModule):
                  cache_dataset_filepath: str = "", 
                  num_workers: int = 4, 
                  pin_memory: bool = True, **kwargs):
-        super().__init__(
+        super().__init__(task_name, 
                          train_percentage= train_percentage,
-                         task_name= task_name, 
                          input_shape=input_shape, 
                          input_size=input_size, 
                          train_batch_size=train_batch_size, 
@@ -390,12 +387,13 @@ class CV_DataModule_train(CV_DataModule):
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
             
             self.dataset = {}
-            self.dataset['train'] = split_stratify(tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            self.dataset_ga = {}
+            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
                 train=True, 
                 download=True,
                 transform=self.convert_img,
                 target_transform = self.onehot
-                ), self.train_percentage))
+                )
            
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
                 train=False,
@@ -407,11 +405,12 @@ class CV_DataModule_train(CV_DataModule):
         else:
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
             self.dataset = {}
-            self.dataset['train'] = split_stratify(tensor_dataset(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
+            self.dataset_ga = {}
+            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
                 train=True, 
                 transform=self.convert_img,
                 target_transform = self.onehot
-                ), self.train_percentage))
+                )
            
             self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root=self.cached_dataset_filepath,
                 train=False,
