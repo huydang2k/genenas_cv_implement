@@ -49,7 +49,8 @@ class NasgepCellNet(nn.Module):
         for i in range(N):
            self.all_cells.append(deepcopy(self.cell_list[0]))
         self.all_cells.append(deepcopy(self.cell_list[1]))
-
+        for i in range(N):
+            self.all_cells.append(deepcopy(self.cell_list[0]))
         self.init_weights()
 
     def init_weights(self):
