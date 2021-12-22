@@ -11,6 +11,7 @@ class Optimizer:
     def __init__(self, args):
         self.D = args.chromosome_length
         self.N = args.popsize
+        print(self.N)
         self.T = args.num_iter
         self.operator = Operator(None, None)
         self.save_dict_path = args.save_dict_path
@@ -38,7 +39,6 @@ class Optimizer:
             # first evaluation
             print('First population')
             fitness = [problem.evaluate(population[i, :]) for i in range(self.N)]
-            print(fitness)
             print('Finish population')
             start_generation = 1
         else:

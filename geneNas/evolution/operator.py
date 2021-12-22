@@ -196,12 +196,17 @@ class MultiObjectiveOperator(Operator):
         return population[sorted_pop_indices, :], objs[sorted_pop_indices]
 
     def select(self, population, objs, offspring, offspring_objs):
-
+        print('select')
+        print(population.shape)
+        print(objs)
+        print(offspring.shape)
+        print(offspring_objs)
         # extract parameters
         N, D = population.shape
 
         # concat
         inter_population = np.concatenate([population, offspring], axis=0)
+        
         inter_objs = np.array(
             objs + offspring_objs,
             dtype=[(f"f{i + 1}", np.float32) for i in range(len(objs[0]))],

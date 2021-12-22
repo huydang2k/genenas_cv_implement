@@ -263,4 +263,5 @@ class CV_Problem_MultiObjNoTrain(Problem):
         symbols, _, _ = self.replace_value_with_symbol(chromosome)
         print(f"CHROMOSOME: {symbols}")
         nasgep_model = self.setup_model(chromosome)
-        return self.perform_kfold(nasgep_model), CV_Problem_MultiObjNoTrain.total_params(nasgep_model)
+        avg_metrics, avg_max_metrics = self.perform_kfold(nasgep_model)
+        return avg_metrics, avg_max_metrics, CV_Problem_MultiObjNoTrain.total_params(nasgep_model)
