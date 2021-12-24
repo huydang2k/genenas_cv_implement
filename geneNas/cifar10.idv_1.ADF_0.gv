@@ -1,0 +1,6 @@
+// Best solution
+digraph {
+	node_1 [label=depth_wise_conv_1x7]
+	node_2 [label=element_wise_sum]
+	node_1 -> node_2
+}

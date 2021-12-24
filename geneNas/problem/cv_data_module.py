@@ -34,13 +34,16 @@ def split_stratify(dataset: Dataset, test_size):
 class CV_DataModule(pl.LightningDataModule):
     metrics_names = {
         "cifar10": "accuracy",
+        "imagenet": "accuracy"
         # "health_fact": "accuracy",
     }
     num_labels_map = {
-        "cifar10": 10
+        "cifar10": 10,
+        "imagenet": 1000
     }
     dataset_names = {
-        "cifar10": "CIFAR10"
+        "cifar10": "CIFAR10",
+        "imagenet": "ImageNet"
         # "health_fact": ["health_fact"],
     }
 
@@ -98,7 +101,7 @@ class CV_DataModule(pl.LightningDataModule):
                 download= True,
                 transform=self.convert_img), self.train_percentage))
 
-
+            
             self.dataset['test'] = tensor_dataset(
                 getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
                                                                       train=False,
@@ -120,7 +123,7 @@ class CV_DataModule(pl.LightningDataModule):
                                                                       transform=self.convert_img)
                 )
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
-
+        print(len(self.dataset['train']))
         self.eval_splits = [x for x in self.dataset.keys() if "validation" in x]
 
     def prepare_data(self):
