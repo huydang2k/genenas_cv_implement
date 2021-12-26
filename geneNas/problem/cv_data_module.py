@@ -404,20 +404,24 @@ class CV_DataModule_train(CV_DataModule):
 
             self.dataset = {}
             self.dataset_ga = {}
-            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data_' + self.task_name, 
-                train=True, 
-                download=True,
+
+            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, 'ImageFolder')(root='/hdd/huydang/data/ILSVRC/Data/CLS-LOC/train', 
+                transform=self.convert_img,
+                target_transform = self.onehot
+                ), self.train_percentage)
+
+            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, 'ImageFolder')(root='/hdd/huydang/data/ILSVRC/Data/CLS-LOC/test', 
                 transform=self.convert_img,
                 target_transform = self.onehot
                 ), self.train_percentage)
            
 
-            self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data_' + self.task_name,
-            train=False,
-            download=True,
-            transform=self.convert_img,
-            target_transform=self.onehot
-            )
+            # self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data_' + self.task_name,
+            # train=False,
+            # download=True,
+            # transform=self.convert_img,
+            # target_transform=self.onehot
+            # )
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
         else:
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
