@@ -3,4 +3,5 @@ install.sh*
 venv/
 *.ckpt
 data
-cifar10_data/
+data_cifar10/
+cal/

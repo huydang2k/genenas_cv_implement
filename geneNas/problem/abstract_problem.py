@@ -98,7 +98,9 @@ class Problem(ABC):
             return all_main_func
 
     def parse_tree(self, sub_chromosome, function_set):
+        print(sub_chromosome)
         symbols, arity, gene_types = self.replace_value_with_symbol(sub_chromosome)
+        print(symbols)
         return ModuleTree(symbols, arity, gene_types, function_set)
 
     def replace_value_with_symbol(

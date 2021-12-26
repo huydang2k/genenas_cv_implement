@@ -13,6 +13,7 @@ logging.disable(logging.CRITICAL)
 def parse_args():
     parser = argparse.ArgumentParser()
     parser = CV_Problem_MultiObjNoTrain.add_arguments(parser)
+    
     parser = pl.Trainer.add_argparse_args(parser)
     parser = CV_DataModule.add_argparse_args(parser)
     parser = CV_DataModule.add_cache_arguments(parser)
@@ -22,7 +23,9 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=42)
 
     args = parser.parse_args()
-
+    # print(args.input_size)
+    # print('adsdsa')
+    # print(args)
     args.num_terminal = args.num_main + 1
     args.l_main = args.h_main * (args.max_arity - 1) + 1
     args.l_adf = args.h_adf * (args.max_arity - 1) + 1

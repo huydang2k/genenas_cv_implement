@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader, SubsetRandomSampler, Dataset
 import pytorch_lightning as pl
 from transformers import AutoTokenizer, AutoModel
 from sklearn.model_selection import KFold, train_test_split
-from typing import Tuple
+from typing import Tuple, List
 from torch import Tensor
 import torch.nn as nn
 from torch.nn.modules import linear
@@ -43,7 +43,7 @@ class CV_DataModule(pl.LightningDataModule):
     }
     dataset_names = {
         "cifar10": "CIFAR10",
-        "imagenet": "ImageNet"
+        "imagenet": "IMAGENET"
         # "health_fact": ["health_fact"],
     }
 
@@ -51,8 +51,7 @@ class CV_DataModule(pl.LightningDataModule):
         self,
         task_name: str,
         train_percentage,
-        input_shape : Tuple[int,int,int] = [3,32,32],
-        input_size:int = 32,
+
         train_batch_size: int = 32,
         eval_batch_size: int = 32,
         cache_dataset: bool = False,
@@ -62,14 +61,12 @@ class CV_DataModule(pl.LightningDataModule):
         *args,
         **kwargs,
 
-    ):
+    ):  
         super().__init__()
         self.train_percentage = train_percentage
         self.task_name = task_name
         self.train_batch_size = train_batch_size
         self.eval_batch_size = eval_batch_size
-        self.input_shape = input_shape
-        self.input_size = input_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
         self.cached_train = None
@@ -82,30 +79,31 @@ class CV_DataModule(pl.LightningDataModule):
 
                 # self.load_cache_dataset(cached_dataset_filepath)
         self.num_labels = self.num_labels_map[self.task_name]
+      
+
+    def convert_img(self, img):
         self.transform = transforms.Compose([
             transforms.Resize(self.input_size),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
-
-    def convert_img(self, img):
         return {'feature_map': self.transform(img)}
 
-    def setup(self, stage):
-
+    def setup(self, stage,input_size):
+        self.input_size = input_size
         if not self.cache_dataset:
             print('not cache')
             self.dataset = {}
-            self.dataset['train'] = tensor_dataset(split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            self.dataset['train'] = tensor_dataset(split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data_' + self.task_name, 
                 train=True, 
                 download= True,
                 transform=self.convert_img), self.train_percentage))
 
             
             self.dataset['test'] = tensor_dataset(
-                getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
+                getattr(torchvision.datasets, self.task_name.upper())(root='./data_' + self.task_name,
                                                                       train=False,
-
+                                                                      download= True,
                                                                       transform=self.convert_img)
                 )
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
@@ -128,7 +126,7 @@ class CV_DataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         if not self.cache_dataset:
-            getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', download=True)
+            getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data_' + self.task_name, download=True)
 
     def train_dataloader(self):
         return DataLoader(self.dataset['train'], batch_size=self.train_batch_size, shuffle=True,
@@ -196,6 +194,7 @@ class CV_DataModule(pl.LightningDataModule):
         parser.add_argument(
             "--cache-dataset-filepath", type=str, default="", help="Cached dataset path"
         )
+        parser.add_argument("--input_size", default= [32,32], nargs='+', type=int)
         parser.add_argument("--k-folds", type=int, default=10)
         parser.add_argument("--train_percentage", type= float, default= 0.1)
         return parser 
@@ -210,8 +209,6 @@ class CV_DataModule_RWE(CV_DataModule):
         self,
         task_name: str,
         train_percentage: float,
-        input_shape : Tuple[int,int,int] = [3,32,32],
-        input_size:int = 32,
         train_batch_size: int = 32,
         eval_batch_size: int = 32,
         cache_dataset: bool = False,
@@ -223,8 +220,6 @@ class CV_DataModule_RWE(CV_DataModule):
         super().__init__(
             task_name=task_name,
             train_percentage= train_percentage,
-            input_shape=input_shape,
-            input_size=input_size,
             train_batch_size=train_batch_size,
             eval_batch_size=eval_batch_size,
             cache_dataset=cache_dataset,
@@ -236,31 +231,30 @@ class CV_DataModule_RWE(CV_DataModule):
     def setup_device(self, gpus: int = 1):
         self.gpus = gpus
 
-    def convert_img(self, img):
-        return {'feature_map': self.transform(img)}
 
     def get_model(self, model: pl.LightningModule):
         self.model = model
 
-    def setup(self, stage):
+    def setup(self,stage, input_size):
+        self.input_size = input_size
         if not self.cache_dataset:
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
             print('not cache')
             self.dataset = {}
             self.dataset_ga = {}
-            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data_' + self.task_name, 
                 train=True, 
                 download=True,
                 transform=self.convert_img,
                 target_transform = self.onehot
                 ), self.train_percentage)
 
-            self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
-                                                                                         train=False,
-                                                                                         download=True,
-                                                                                         transform=self.convert_img,
-                                                                                         target_transform=self.onehot
-                                                                                         )
+            self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data_' + self.task_name,
+            train=False,
+            download=True,
+            transform=self.convert_img,
+            target_transform=self.onehot
+            )
             print('Precalculating')
             start = time.time()
             self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, self.gpus)
@@ -384,8 +378,6 @@ class CV_DataModule_train(CV_DataModule):
     def __init__(self, 
                  task_name: str,
                  train_percentage,
-                 input_shape: Tuple[int, int, int] = [3, 32, 32], 
-                 input_size: int = 32, 
                  train_batch_size: int = 32, 
                  eval_batch_size: int = 32, 
                  cache_dataset: bool = False, 
@@ -394,8 +386,6 @@ class CV_DataModule_train(CV_DataModule):
                  pin_memory: bool = True, **kwargs):
         super().__init__(task_name, 
                          train_percentage= train_percentage,
-                         input_shape=input_shape, 
-                         input_size=input_size, 
                          train_batch_size=train_batch_size, 
                          eval_batch_size=eval_batch_size, 
                          cache_dataset=cache_dataset, 
@@ -404,13 +394,14 @@ class CV_DataModule_train(CV_DataModule):
                          pin_memory=pin_memory, 
                          **kwargs)
 
-    def setup(self, stage):
+    def setup(self, stage,input_size):
+        self.input_size = input_size
         if not self.cache_dataset:
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
 
             self.dataset = {}
             self.dataset_ga = {}
-            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./cifar10_data', 
+            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data_' + self.task_name, 
                 train=True, 
                 download=True,
                 transform=self.convert_img,
@@ -418,12 +409,12 @@ class CV_DataModule_train(CV_DataModule):
                 ), self.train_percentage)
            
 
-            self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./cifar10_data',
-                                                                                         train=False,
-                                                                                         download=True,
-                                                                                         transform=self.convert_img,
-                                                                                         target_transform=self.onehot
-                                                                                         )
+            self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data_' + self.task_name,
+            train=False,
+            download=True,
+            transform=self.convert_img,
+            target_transform=self.onehot
+            )
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
         else:
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)

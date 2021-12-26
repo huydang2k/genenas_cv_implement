@@ -40,7 +40,7 @@ class NasgepNet(pl.LightningModule):
         self.N = N
         self.save_hyperparameters()
         #
-        padding_for_conv_3x3 = (self.hidden_shape[1] - self.input_size + 1,self.hidden_shape[2] - self.input_size + 1)
+        padding_for_conv_3x3 = (self.hidden_shape[1] - self.input_size[0] + 1,self.hidden_shape[2] - self.input_size[1] + 1)
         post_nasgep_cell_output_channel = self.hidden_shape[0]
 
         self.conv3x3 = nn.Conv2d(in_channels=3, out_channels=self.hidden_shape[0], kernel_size=3,padding = padding_for_conv_3x3)
@@ -263,7 +263,6 @@ class NasgepNet(pl.LightningModule):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument("--N", default=1, type=int)
         parser.add_argument("--hidden_shape", default= [3,32,32], nargs='+', type=int)
-        # parser.add_argument("--input_size", default= 32, type=int)
         parser.add_argument("--dropout", default=0.1, type=float)
         parser.add_argument("--use_simple_cls", action="store_true")
         return parser

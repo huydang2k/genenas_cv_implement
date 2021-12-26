@@ -17,11 +17,14 @@ from tqdm import tqdm
 class CV_Problem_MultiObjNoTrain(Problem):
     def __init__(self, args):
         super().__init__(args)
+        print(args.input_size)
         self.main_function_set = CV_Main_FunctionSet.return_func_name()
         self.adf_function_set = CV_ADF_FunctionSet.return_func_name()
+        # print('----')
+        # print(self.hparams)
         self.dm = CV_DataModule.from_argparse_args(self.hparams)
         self.dm.prepare_data()
-        self.dm.setup("fit")
+        self.dm.setup('fit',args.input_size)
         self.gpus = self.hparams.gpus
         self.chromsome_logger = ChromosomeLogger()
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
