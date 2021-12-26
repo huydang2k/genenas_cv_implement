@@ -46,7 +46,7 @@ class CV_DataModule(pl.LightningDataModule):
     dataset_names = {
         "cifar10": "CIFAR10",
         "imagenet": "IMAGENET",
-        'caltech256': "CALTECH256"
+        'caltech256': "Caltech256"
         # "health_fact": ["health_fact"],
     }
 
