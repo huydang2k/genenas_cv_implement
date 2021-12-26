@@ -34,16 +34,19 @@ def split_stratify(dataset: Dataset, test_size):
 class CV_DataModule(pl.LightningDataModule):
     metrics_names = {
         "cifar10": "accuracy",
-        "imagenet": "accuracy"
+        "imagenet": "accuracy",
+        "caltech256": "accuracy",
         # "health_fact": "accuracy",
     }
     num_labels_map = {
         "cifar10": 10,
-        "imagenet": 1000
+        "imagenet": 1000,
+        'caltech256': 256
     }
     dataset_names = {
         "cifar10": "CIFAR10",
-        "imagenet": "IMAGENET"
+        "imagenet": "IMAGENET",
+        'caltech256': "CALTECH256"
         # "health_fact": ["health_fact"],
     }
 
