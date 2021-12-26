@@ -43,7 +43,7 @@ def parse_args():
 def main():
     # get args
     args = parse_args()
-    # print(args)
+    print(args)
     # solve source problems
     problem = CV_Problem_MultiObjNoTrain(args)
 

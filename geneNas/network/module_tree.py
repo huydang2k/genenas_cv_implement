@@ -63,8 +63,7 @@ class ModuleNode(nn.Module):
 
     def forward(self, input_dict):
         # print('pass in tree with type: ',self.node.node_type,' and value: ', self.node.value,)
-        
-        
+     
         if (
             self.node.node_type == GeneType.TERMINAL
             or self.node.node_type == GeneType.ADF_TERMINAL

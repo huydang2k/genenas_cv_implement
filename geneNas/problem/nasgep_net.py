@@ -40,7 +40,7 @@ class NasgepNet(pl.LightningModule):
         self.N = N
         self.save_hyperparameters()
         #
-        padding_for_conv_3x3 = (self.hidden_shape[1] - self.input_size[0] + 1,self.hidden_shape[2] - self.input_size[1] + 1)
+        padding_for_conv_3x3 = (1,1)
         post_nasgep_cell_output_channel = self.hidden_shape[0]
 
         self.conv3x3 = nn.Conv2d(in_channels=3, out_channels=self.hidden_shape[0], kernel_size=3,padding = padding_for_conv_3x3)
@@ -101,10 +101,6 @@ class NasgepNet(pl.LightningModule):
     def forward(self, inputs):
         
         # print('input ', inputs)
-        print('i--')
-        print(type(inputs))
-        print(inputs)
-
         x = self.conv3x3(inputs)
 
         x = self.nasgepcell_net(x)
