@@ -240,6 +240,7 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
         
 class NasgepNet_multiObj(NasgepNetRWE_multiObj):
     def __init__(self, num_labels: int, dropout: float = 0.1, hidden_shape: List = [3, 32, 32], N: int = 1, input_size: int = 32, num_val_dataloader: int = 1, **kwargs):
+        super().__init__(num_labels, dropout=dropout, hidden_shape=hidden_shape, N=N, input_size=input_size, num_val_dataloader=num_val_dataloader, **kwargs)
         padding_for_conv_3x3 = (self.hidden_shape[1] - self.input_size[0] + 1,self.hidden_shape[2] - self.input_size[1] + 1)
         self.embed = nn.Sequential(
             nn.Conv2d(in_channels= 3, out_channels=int(self.hidden_shape[0]/2), kernel_size=3,padding = padding_for_conv_3x3,stride = 2) ,
@@ -248,7 +249,7 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
             nn.Conv2d(in_channels= self.hidden_shape[0], out_channels=self.hidden_shape[0], kernel_size=3,padding = (1,1),stride = 2) ,
             nn.Relu(),
         )
-        super().__init__(num_labels, dropout=dropout, hidden_shape=hidden_shape, N=N, input_size=input_size, num_val_dataloader=num_val_dataloader, **kwargs)
+        
         
     def init_model(self, cells, adfs):
         nasgepcell_net = NasgepCellNet(
