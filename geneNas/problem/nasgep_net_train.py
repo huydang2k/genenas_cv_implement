@@ -245,9 +245,9 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
         self.embed = nn.Sequential(
             nn.Conv2d(in_channels= 3, out_channels=int(self.hidden_shape[0]/2), kernel_size=3,padding = padding_for_conv_3x3,stride = 2) ,
             nn.Conv2d(in_channels= int(self.hidden_shape[0]/2), out_channels=self.hidden_shape[0], kernel_size=3,padding = (1,1),stride = 2) ,
-            nn.Relu(),
+            nn.ReLu(),
             nn.Conv2d(in_channels= self.hidden_shape[0], out_channels=self.hidden_shape[0], kernel_size=3,padding = (1,1),stride = 2) ,
-            nn.Relu(),
+            nn.ReLu(),
         )
         
         
