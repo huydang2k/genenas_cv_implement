@@ -410,10 +410,10 @@ class CV_DataModule_train(CV_DataModule):
                 target_transform = self.onehot
                 ), self.train_percentage)
 
-            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, 'ImageFolder')(root='/hdd/huydang/data/ILSVRC/Data/CLS-LOC/test', 
+            self.dataset['test'] = split_stratify(getattr(torchvision.datasets, 'ImageFolder')(root='/hdd/huydang/data/ILSVRC/Data/CLS-LOC/train', 
                 transform=self.convert_img,
                 target_transform = self.onehot
-                ), self.train_percentage)
+                ), self.train_percentage/5)
            
 
             # self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data_' + self.task_name,
