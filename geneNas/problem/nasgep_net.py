@@ -101,8 +101,10 @@ class NasgepNet(pl.LightningModule):
     def forward(self, inputs):
         
         # print('input ', inputs)
-        
-    
+        print('i--')
+        print(type(inputs))
+        print(inputs)
+
         x = self.conv3x3(inputs)
 
         x = self.nasgepcell_net(x)

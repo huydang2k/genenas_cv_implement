@@ -327,6 +327,9 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
         return optimizer
     
     def forward(self, feature_map):
+        print('i--')
+        print(type(feature_map))
+        print(feature_map)
         x = self.embed(feature_map)
         x = self.nasgepcell_net(x)
         x = self.cls_head(x)
