@@ -177,7 +177,7 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         glue_pl.init_chromosome_logger(self.chromsome_logger)
         #precalculate data
         self.dm.get_model(glue_pl)
-        self.dm.prepare_data()
+        # self.dm.prepare_data()
         self.dm.setup("fit")
         
         return glue_pl

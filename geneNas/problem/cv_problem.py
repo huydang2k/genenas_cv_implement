@@ -23,7 +23,7 @@ class CV_Problem_MultiObjNoTrain(Problem):
         # print('----')
         # print(self.hparams)
         self.dm = CV_DataModule.from_argparse_args(self.hparams)
-        self.dm.prepare_data()
+        # self.dm.prepare_data()
         self.dm.setup('fit',args.input_size)
         self.gpus = self.hparams.gpus
         self.chromsome_logger = ChromosomeLogger()

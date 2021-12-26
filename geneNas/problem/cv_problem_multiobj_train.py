@@ -21,7 +21,7 @@ class CV_Problem_MultiObjTrain(Problem):
         self.main_function_set = CV_Main_FunctionSet.return_func_name()
         self.adf_function_set = CV_ADF_FunctionSet.return_func_name()
         self.dm = CV_DataModule_train.from_argparse_args(self.hparams)
-        self.dm.prepare_data()
+        # self.dm.prepare_data()
         self.dm.setup("fit")
 
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
