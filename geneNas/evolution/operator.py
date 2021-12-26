@@ -196,11 +196,6 @@ class MultiObjectiveOperator(Operator):
         return population[sorted_pop_indices, :], objs[sorted_pop_indices]
 
     def select(self, population, objs, offspring, offspring_objs):
-        print('select')
-        print(population.shape)
-        print(objs)
-        print(offspring.shape)
-        print(offspring_objs)
         # extract parameters
         N, D = population.shape
 
