@@ -10,9 +10,12 @@ path = os.path.dirname(os.path.abspath(__file__))
 today = datetime.today().strftime("%Y-%m-%d")
 def input_chromosome(args):
     try:
-        with open(args.checkpoint_file,'rb') as f:
+        with open(args.checkpoint_population_file,'rb') as f:
             d = pickle.load(f)
-            return np.array(d['population'][0])
+            fitness = [i[2] for i in d['fitness']]
+            best_indicies = np.argsort(fitness)
+            return np.array(d['population'][best_indicies[-1]])
+            
     except:
         print('Read from txt fle')
     try:
@@ -35,12 +38,12 @@ def input_chromosome(args):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-
+    parser = CV_Problem_MultiObjTrain.add_train_arguments(parser)
     parser = pl.Trainer.add_argparse_args(parser)
     parser = CV_DataModule_train.add_argparse_args(parser)
     parser = CV_DataModule_train.add_cache_arguments(parser)
     parser.add_argument("--file_name", default= '/chromosome.txt', type=str)
-    parser.add_argument("--checkpoint_file", default= '/checkpoint.pkl', type=str)
+    parser.add_argument("--checkpoint_population_file", default= '/checkpoint.pkl', type=str)
     parser.add_argument("--save_path", default = path + f"chromosome_trained_weights.gene_nas.{today}.pkl", type= str)
     parser = CV_Problem_MultiObjTrain.add_arguments(parser)
     parser = NasgepNet_multiObj.add_model_specific_args(parser)

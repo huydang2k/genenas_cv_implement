@@ -17,7 +17,6 @@ from tqdm import tqdm
 class CV_Problem_MultiObjNoTrain(Problem):
     def __init__(self, args):
         super().__init__(args)
-        print(args.input_size)
         self.main_function_set = CV_Main_FunctionSet.return_func_name()
         self.adf_function_set = CV_ADF_FunctionSet.return_func_name()
         # print('----')
@@ -33,8 +32,15 @@ class CV_Problem_MultiObjNoTrain(Problem):
         self.weights_summary = None
         self.early_stop = None
         self.k_folds = self.hparams.k_folds
+        self.distribution = args.distribution   
+        if self.distribution == 'uniform':
+            self.weight_values = [0.5, 1, 2, 3]
+        elif self.distribution == 'gaussian':
+            self.weight_values = [(0.0, 0.5),
+                                  (0.0, 1.0),
+                                  (0.0, 0.75),
+                                  (0.0, 1.25)]
         
-        self.weight_values = [0.5, 1, 2, 3]
         self.metric = self.dm.metric
     def _get_chromosome_range(self) -> Tuple[int, int, int, int,int]:
         R1 = len(self.main_function_set)
@@ -150,12 +156,21 @@ class CV_Problem_MultiObjNoTrain(Problem):
         model.hparams.lr = new_lr
         print(f"New optimal lr: {new_lr}")
     def apply_weight(self, model, value):
-        sampler = torch.distributions.uniform.Uniform(low=-value, high=value)
-        with torch.no_grad():
-            for name, param in model.named_parameters():
-                new_param = sampler.sample(param.shape)
-                param.copy_(new_param)
-        return
+        if self.distribution == 'uniform':
+            sampler = torch.distributions.uniform.Uniform(low=-value, high=value)
+            with torch.no_grad():
+                for name, param in model.named_parameters():
+                    new_param = sampler.sample(param.shape)
+                    param.copy_(new_param)
+            return
+        elif self.distribution == 'gaussian':
+            sampler = torch.distributions.Normal(loc=value[0], scale=value[1])
+            with torch.no_grad():
+                for name, param in model.named_parameters():
+                    new_param = sampler.sample(param.shape)
+                    param.copy_(new_param)
+            return
+        
     def setup_model_trainer(self, chromosome: np.array):
         glue_pl = self.setup_model(chromosome)
         trainer = self.setup_trainer()

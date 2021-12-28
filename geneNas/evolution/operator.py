@@ -153,8 +153,8 @@ class MultiObjectiveOperator(Operator):
         number_of_objectives = len(objs[0])
         for i in range(number_of_objectives):
             # Sort the population by Obj n
-            sorted_objs = np.sort(objs, order="f1")
-            sorted_indices = np.argsort(objs, order="f1")
+            sorted_objs = np.sort(objs, order=f"f{i+1}")
+            sorted_indices = np.argsort(objs, order=f"f{i+1}")
             objective_minn = sorted_objs[0][i]
             objective_maxn = sorted_objs[-1][i]
 
@@ -210,7 +210,6 @@ class MultiObjectiveOperator(Operator):
             inter_objs[f"f{i + 1}"] *= -1
         # inter_objs["f1"] *= -1
         # inter_objs["f2"] *= -1
-        print(inter_objs)
         # inter_fitness = fitness + offspring_fitness
 
         # select
@@ -219,7 +218,6 @@ class MultiObjectiveOperator(Operator):
             objs[f"f{i + 1}"] *= -1
         # objs["f1"] *= -1
         # objs["f2"] *= -1
-        print(objs)
         objs = objs.tolist()
 
         return population, objs

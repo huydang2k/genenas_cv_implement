@@ -13,7 +13,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import pytorch_lightning as pl
 from util.exception import NanException
 from torch.utils.data import DataLoader
-
+from argparse import ArgumentParser
 
 class CV_Problem_MultiObjTrain(Problem):
     def __init__(self, args):
@@ -27,6 +27,7 @@ class CV_Problem_MultiObjTrain(Problem):
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
         self.train_batch_size = args.train_batch_size
         self.val_batch_size = args.eval_batch_size
+        self.load_model_checkpoint = args.load_model_checkpoint
         self.chromsome_logger = ChromosomeLogger()
         self.save_path = args.save_path
         self.progress_bar = 1
@@ -183,7 +184,10 @@ class CV_Problem_MultiObjTrain(Problem):
         return trainer
 
     def setup_model(self, chromosome):
-        
+        if (self.load_model_checkpoint):
+            model = NasgepNet_multiObj.load_from_checkpoint(self.save_path)
+            print('model size: ' , CV_Problem_MultiObjTrain.total_params(model))
+            return model
         self.chromsome_logger.log_chromosome(chromosome)
         mains, adfs = self.parse_chromosome(chromosome, return_adf=True)
         glue_pl = NasgepNet_multiObj(
@@ -198,11 +202,11 @@ class CV_Problem_MultiObjTrain(Problem):
     
 
     def train(self, model):
-        trainer = self.setup_trainer()
+        self.trainer = self.setup_trainer()
         train_dataloader = DataLoader(self.dm.dataset['train'], batch_size= self.train_batch_size, shuffle= True)
         val_dataloader = DataLoader(self.dm.dataset['validation'], batch_size= self.val_batch_size)
-        self.lr_finder(model, trainer, train_dataloader, val_dataloader)
-        trainer.fit(
+        # self.lr_finder(model, self.trainer, train_dataloader, val_dataloader)
+        self.trainer.fit(
             model, 
             train_dataloaders= train_dataloader,
             val_dataloaders= val_dataloader,
@@ -211,7 +215,12 @@ class CV_Problem_MultiObjTrain(Problem):
         #             self.metric_name
         # ]
         
-
+    @staticmethod
+    def add_train_arguments(parent_parser):
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+        # parser.add_argument("--task_name", default='cifar10', type=str)
+        parser.add_argument("--load_model_checkpoint",action='store_true')
+        return parser
     def evaluate(self, chromosome: np.array):
         print(chromosome)
         symbols, _, _ = self.replace_value_with_symbol(chromosome)
@@ -219,7 +228,7 @@ class CV_Problem_MultiObjTrain(Problem):
         print('Set up model')
         glue_pl = self.setup_model(chromosome)
         self.train(glue_pl)
-        
-        self.trainer.save_checkpoint(self.save_path)
+        print(self.save_path)
+        self.trainer.save_checkpoint(self.save_path,weights_only = True)
 
     

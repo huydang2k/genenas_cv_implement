@@ -153,6 +153,8 @@ class Point_Wise_Conv(nn.Module):
         super().__init__()
         self.cin = cin
         self.cout = cout
+        self.rl = nn.ReLU()
+        self.bn = nn.BatchNorm2d(cout)
         self.pwc = nn.Conv2d(cin, cout, kernel_size=1)
 
     """
@@ -162,12 +164,16 @@ class Point_Wise_Conv(nn.Module):
         del self.pwc
         self.pwc = nn.Conv2d(self.cin, self.cout, kernel_size=1,stride = 2)
     def forward(self, x):
+        x = self.rl(x)
         x = self.pwc(x)
+        x = self.bn(x)
         return x
 
 class Depth_Wise__Conv(nn.Module):
     def __init__(self, cin, cout,kernel_size,stride = 1, padding = 0):
         super(Depth_Wise__Conv, self).__init__()
+        self.rl = nn.ReLU()
+        self.bn = nn.BatchNorm2d(cin)
         self.cin = cin
         self.cout = cout
         self.kernel_size = kernel_size
@@ -182,19 +188,23 @@ class Depth_Wise__Conv(nn.Module):
         del self.depthwise
         self.depthwise = nn.Conv2d(self.cin, self.cin, kernel_size= self.kernel_size, padding=self.padding, stride =2, groups=self.cin)
     def forward(self, x):
+        x = self.rl(x)
         out = self.depthwise(x)
-
+        out = self.bn(out)
         # input()
         return out
 
 class Separable_Depth_Wise__Conv(nn.Module):
     def __init__(self, cin, cout,kernel_size,stride = 1, padding = 0):
+        
         self.cin = cin
         self.cout = cout
         self.kernel_size = kernel_size
         self.padding = padding
         self.stride = stride
         super(Separable_Depth_Wise__Conv, self).__init__()
+        self.rl = nn.ReLU()
+        self.bn = nn.BatchNorm2d(cout)
         self.depthwise = nn.Conv2d(cin, cin, kernel_size=kernel_size, padding=padding, stride =stride,groups=cin)
         self.pointwise = nn.Conv2d(cin, cout, kernel_size=1)
     
@@ -206,11 +216,13 @@ class Separable_Depth_Wise__Conv(nn.Module):
         self.depthwise = nn.Conv2d(self.cin, self.cin, kernel_size= self.kernel_size, padding=self.padding, stride =2, groups=self.cin)
 
     def forward(self, x):
+        x = self.rl(x)
         out = self.depthwise(x)
         
         
         # input()
         out = self.pointwise(out)
+        out = self.bn(out)
         return out
 
 class ReshapeModule(nn.Module):
