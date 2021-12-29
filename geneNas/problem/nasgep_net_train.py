@@ -21,10 +21,12 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
         N: int = 1,
         input_size: int = 32,
         num_val_dataloader: int = 1,
+        if_train: bool = False,
         **kwargs,
     ):
         # print('init NasgepNetRWE')
         super().__init__()
+        self.if_train = if_train
         self.input_size = input_size
         self.hidden_shape = hidden_shape
         self.N = N
@@ -58,8 +60,9 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
             self.hidden_shape,
             self.N
         )
-        for param in nasgepcell_net.parameters():
-            param.requires_grad = False
+        if not self.if_train:
+            for param in nasgepcell_net.parameters():
+                param.requires_grad = False
        
         self.add_module("nasgep_cell_net", nasgepcell_net)
     
