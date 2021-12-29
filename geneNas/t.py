@@ -5,7 +5,7 @@ import torch
 # model = TheModelClass(*args, **kwargs)
 # model.load_state_dict(torch.load(PATH))
 # print(model)
-with open('cifar10.gene_nas.2021-12-28_gauss.pkl','rb') as f:
+with open('cifar10.gene_nas.2021-12-29.gauss.fix_conv.pkl','rb') as f:
     d = pickle.load(f)
     fitness = [i[2] for i in d['fitness']]
     best_indicies = np.argsort(fitness)

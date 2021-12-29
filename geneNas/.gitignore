@@ -2,6 +2,7 @@ __pycache__/
 install.sh*
 venv/
 *.ckpt
+*.pkl
 data
 data_cifar10/
 cal/
