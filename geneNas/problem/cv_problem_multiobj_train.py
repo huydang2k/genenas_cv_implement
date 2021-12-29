@@ -23,11 +23,12 @@ class CV_Problem_MultiObjTrain(Problem):
         self.dm = CV_DataModule_train.from_argparse_args(self.hparams)
         # self.dm.prepare_data()
         self.dm.setup("fit",args.input_size)
-
+        self.if_train = args.if_train
         self.metric_name = self.dm.metrics_names[self.hparams.task_name]
         self.train_batch_size = args.train_batch_size
         self.val_batch_size = args.eval_batch_size
         self.load_model_checkpoint = args.load_model_checkpoint
+        
         self.chromsome_logger = ChromosomeLogger()
         self.save_path = args.save_path
         self.progress_bar = 1
@@ -195,7 +196,7 @@ class CV_Problem_MultiObjTrain(Problem):
             **vars(self.hparams),
         )
         glue_pl.init_metric(self.dm.metric)
-        glue_pl.init_model(mains, adfs)
+        glue_pl.init_model(mains, adfs,self.if_train)
         glue_pl.init_chromosome_logger(self.chromsome_logger)
         return glue_pl
     
@@ -206,6 +207,9 @@ class CV_Problem_MultiObjTrain(Problem):
         train_dataloader = DataLoader(self.dm.dataset['train'], batch_size= self.train_batch_size, shuffle= True)
         val_dataloader = DataLoader(self.dm.dataset['validation'], batch_size= self.val_batch_size)
         # self.lr_finder(model, self.trainer, train_dataloader, val_dataloader)
+        
+        for param in model.parameters():
+            param.requires_grad = True
         self.trainer.fit(
             model, 
             train_dataloaders= train_dataloader,
@@ -220,6 +224,7 @@ class CV_Problem_MultiObjTrain(Problem):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         # parser.add_argument("--task_name", default='cifar10', type=str)
         parser.add_argument("--load_model_checkpoint",action='store_true')
+        parser.add_argument("--if_train",action='store_true')
         return parser
     def evaluate(self, chromosome: np.array):
         print(chromosome)
