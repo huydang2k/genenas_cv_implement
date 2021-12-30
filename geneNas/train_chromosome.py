@@ -67,6 +67,7 @@ def parse_args():
         
 def main():
     args = parse_args()
+    print(args)
     chromosome = input_chromosome(args)
     problem = CV_Problem_MultiObjTrain(args= args)
     problem.evaluate(chromosome= chromosome)

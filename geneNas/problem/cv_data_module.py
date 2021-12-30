@@ -54,7 +54,7 @@ class CV_DataModule(pl.LightningDataModule):
         self,
         task_name: str,
         train_percentage,
-
+        imagenet_dataset: bool,
         train_batch_size: int = 32,
         eval_batch_size: int = 32,
         cache_dataset: bool = False,
@@ -66,6 +66,7 @@ class CV_DataModule(pl.LightningDataModule):
 
     ):  
         super().__init__()
+        self.imagenet_dataset = imagenet_dataset
         self.train_percentage = train_percentage
         self.task_name = task_name
         self.train_batch_size = train_batch_size
@@ -200,10 +201,12 @@ class CV_DataModule(pl.LightningDataModule):
         parser.add_argument("--input_size", default= [32,32], nargs='+', type=int)
         parser.add_argument("--k-folds", type=int, default=10)
         parser.add_argument("--train_percentage", type= float, default= 0.1)
+        # parser.add_argument("--imagenet_dataset", type= bool, default = False)
         return parser 
     
 
 def one_hot_labels(y, num_labels):
+    
     return {'one_hot': F.one_hot(torch.tensor(y), num_labels).type(torch.float), 'labels': y}
 
 
@@ -211,7 +214,8 @@ class CV_DataModule_RWE(CV_DataModule):
     def __init__(
         self,
         task_name: str,
-        train_percentage: float,
+        imagenet_dataset: bool = False,
+        train_percentage: float = 0.1,
         train_batch_size: int = 32,
         eval_batch_size: int = 32,
         cache_dataset: bool = False,
@@ -222,6 +226,7 @@ class CV_DataModule_RWE(CV_DataModule):
         ):
         super().__init__(
             task_name=task_name,
+            imagenet_dataset = imagenet_dataset,
             train_percentage= train_percentage,
             train_batch_size=train_batch_size,
             eval_batch_size=eval_batch_size,
@@ -380,6 +385,7 @@ class precalculated_dataset(Dataset):
 class CV_DataModule_train(CV_DataModule):
     def __init__(self, 
                  task_name: str,
+                 imagenet_dataset: bool,
                  train_percentage,
                  train_batch_size: int = 32, 
                  eval_batch_size: int = 32, 
@@ -388,6 +394,7 @@ class CV_DataModule_train(CV_DataModule):
                  num_workers: int = 4, 
                  pin_memory: bool = True, **kwargs):
         super().__init__(task_name, 
+                         imagenet_dataset = imagenet_dataset,
                          train_percentage= train_percentage,
                          train_batch_size=train_batch_size, 
                          eval_batch_size=eval_batch_size, 
@@ -398,13 +405,12 @@ class CV_DataModule_train(CV_DataModule):
                          **kwargs)
 
     def setup(self, stage,input_size):
+       
         self.input_size = input_size
-        if not self.cache_dataset:
-            self.onehot = lambda x: one_hot_labels(x, self.num_labels)
-
-            self.dataset = {}
-            self.dataset_ga = {}
-
+        self.onehot = lambda x: one_hot_labels(x, self.num_labels)
+        self.dataset = {}
+        if (self.imagenet_dataset):
+            # print('here')
             self.dataset['train'] = split_stratify(getattr(torchvision.datasets, 'ImageFolder')(root='/hdd/huydang/data/ILSVRC/Data/CLS-LOC/train', 
                 transform=self.convert_img,
                 target_transform = self.onehot
@@ -414,19 +420,38 @@ class CV_DataModule_train(CV_DataModule):
                 transform=self.convert_img,
                 target_transform = self.onehot
                 ), self.train_percentage/5)
-           
+            self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
+            self.eval_splits = [x for x in self.dataset.keys() if "validation" in x]
+            return
+        if not self.cache_dataset:
+            print('not cache')
+            self.onehot = lambda x: one_hot_labels(x, self.num_labels)
 
-            # self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data_' + self.task_name,
-            # train=False,
-            # download=True,
-            # transform=self.convert_img,
-            # target_transform=self.onehot
-            # )
+            self.dataset = {}
+            
+
+            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data_' + self.task_name, 
+                train=True, 
+                download=True,
+                transform=self.convert_img,
+                target_transform = self.onehot
+                )
+
+            self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data_' + self.task_name,
+            train=False,
+            download=True,
+            transform=self.convert_img,
+            target_transform=self.onehot
+            )
+            
+                   
+
+        
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
         else:
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
             self.dataset = {}
-            self.dataset_ga = {}
+    
             self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root=self.cached_dataset_filepath, 
                 train=True, 
                 transform=self.convert_img,

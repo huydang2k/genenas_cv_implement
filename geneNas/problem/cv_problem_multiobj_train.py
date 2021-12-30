@@ -32,7 +32,7 @@ class CV_Problem_MultiObjTrain(Problem):
         self.chromsome_logger = ChromosomeLogger()
         self.save_path = args.save_path
         self.progress_bar = 1
-        self.weights_summary = None
+        self.weights_summary = "top"
         self.early_stop = None
         self.k_folds = self.hparams.k_folds
         # self.weight_values = [0.5, 1, 2, 3]
@@ -198,6 +198,7 @@ class CV_Problem_MultiObjTrain(Problem):
         glue_pl.init_metric(self.dm.metric)
         glue_pl.init_model(mains, adfs,self.if_train)
         glue_pl.init_chromosome_logger(self.chromsome_logger)
+        print('model size: ' , CV_Problem_MultiObjTrain.total_params(glue_pl))
         return glue_pl
     
     
