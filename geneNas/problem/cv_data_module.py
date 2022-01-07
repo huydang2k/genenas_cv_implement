@@ -430,19 +430,19 @@ class CV_DataModule_train(CV_DataModule):
             self.dataset = {}
             
 
-            self.dataset['train'] = getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data_' + self.task_name, 
+            self.dataset['train'] = split_stratify(getattr(torchvision.datasets, self.dataset_names[self.task_name])(root='./data_' + self.task_name, 
                 train=True, 
                 download=True,
                 transform=self.convert_img,
                 target_transform = self.onehot
-                )
+                ),  self.train_percentage)
 
-            self.dataset['test'] = getattr(torchvision.datasets, self.task_name.upper())(root='./data_' + self.task_name,
+            self.dataset['test'] = split_stratify(getattr(torchvision.datasets, self.task_name.upper())(root='./data_' + self.task_name,
             train=False,
             download=True,
             transform=self.convert_img,
             target_transform=self.onehot
-            )
+            ), self.train_percentage)
             
                    
 

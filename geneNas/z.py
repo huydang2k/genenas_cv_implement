@@ -1,53 +1,30 @@
 
-import numpy as np
+# import numpy as np
+# import pickle
+# with open('/hdd/huydang/genenas_cv_implement/geneNas/lightning_logs/version_45/events.out.tfevents.1641229890.ubuntu.15678.0','rb') as f:
+#         t = pickle.load(f)
+# print(t)
+import pickle
+with open('logs/chromosome19.500epoch.2e5.06_01_2022.uniform.log_infor.pkl','rb') as f:
+        d = pickle.load(f)
+print(d)
+# print(d['acc'][str(20)])       
+# # m = -1
+# i_m = -1        
+# for i in range(20):
+#         l = -1
+#         i_l = -1
+#         for j in range(100):
+#                 if d['acc'][str(i+ 1)][j] > l:
+#                         l = d['acc'][str(i + 1)][j]
+#                         i_l = j
+#         print(f'index {i} -- max {l} on {i_l}')
+ 
+#         if (l > m):
+#                 m = l
+#                 i_m = i
+# print('over all--')
+# print(m)
+# print(i_m)
 
-def uniform_crossover( population):
-        print(population)
-        # extract parameters
-        N, D = population.shape
 
-        # select for crossover
-        parent1 = population[np.random.permutation(N), :]
-        parent2 = population[np.random.permutation(N), :]
-        print('prr')
-        print(parent1, type(parent1))
-        print(parent2, type(parent2))
-        offspring = np.zeros([N, D])
-
-        # create random variable
-        r = np.random.rand(N, D)
-        print('index')
-        # uniform crossover
-        index = r >= 0.5
-        print(index, type(index))
-        offspring[index] = parent1[index]
-        print(offspring[index] , type(offspring[index]))
-        index = r < 0.5
-        offspring[index] = parent2[index]
-        print(index, type(index))
-        print(offspring[index], type(offspring[index]))
-        print(offspring, type(offspring))
-        return offspring.astype(np.int32)
-
-def mutate(offspring):
-        print(offspring, type(offspring))
-        # extract parameters
-        N, D = offspring.shape
-        print('r')
-        # create random variable
-        r = np.random.rand(N, D)
-        print(r, type(r))
-        # mutate with p=1/D
-        print('index')
-        index = r < 1.0 / float(D)
-        print(index, type(index))
-        offspring[index] = np.random.randint(
-            low=[1,2,3], high=[7,8,9], size=offspring.shape
-        )[index]
-        print(offspring[index], type(offspring[index]))
-        print(offspring,type(offspring[index]))
-        return offspring.astype(np.int32)
-
-s = np.random.rand(4,3)
-
-mutate(s)

@@ -5,16 +5,20 @@ import pytorch_lightning as pl
 from problem import CV_DataModule_train, CV_Problem_MultiObjTrain, NasgepNet_multiObj
 import numpy as np
 import pickle
-
+from problem import nasgep_net_train
 path = os.path.dirname(os.path.abspath(__file__))
 today = datetime.today().strftime("%Y-%m-%d")
+
+# run_loss = {}
+# run_accuracy = {}
+# chromosome_index = -1
 def input_chromosome(args):
     try:
         with open(args.checkpoint_population_file,'rb') as f:
             d = pickle.load(f)
             fitness = [i[2] for i in d['fitness']]
-            best_indicies = np.argsort(fitness)
-            return np.array(d['population'][best_indicies[-1]])
+            # best_indicies = np.argsort(fitness)
+            return np.array(d['population'])
             
     except:
         print('Read from txt fle')
@@ -66,12 +70,23 @@ def parse_args():
 
         
 def main():
-    args = parse_args()
-    print(args)
-    chromosome = input_chromosome(args)
-    problem = CV_Problem_MultiObjTrain(args= args)
-    problem.evaluate(chromosome= chromosome)
     
+    args = parse_args()
+    # print(args)
+    problem = CV_Problem_MultiObjTrain(args= args)
+    chromosome_ls = input_chromosome(args)
+    #get the best chromosome
+    chromosome_ls = [chromosome_ls[19]]
+    for chromosome in chromosome_ls:
+        nasgep_net_train.chromosome_index += 1
+        nasgep_net_train.run_loss[str(nasgep_net_train.chromosome_index)] = []
+        nasgep_net_train.run_accuracy[str(nasgep_net_train.chromosome_index)] = []
+        print(nasgep_net_train.chromosome_index)
+        problem.evaluate(chromosome= chromosome)
+    log_path = args.save_path.replace('.pkl','.log_infor.pkl')
+    saved = {'acc': nasgep_net_train.run_accuracy, 'loss': nasgep_net_train.run_loss}
+    with open(f'logs/{log_path}','wb') as f:
+        pickle.dump(saved,f)
     
 
 if __name__ == "__main__":

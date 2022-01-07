@@ -208,7 +208,7 @@ class CV_Problem_MultiObjTrain(Problem):
         train_dataloader = DataLoader(self.dm.dataset['train'], batch_size= self.train_batch_size, shuffle= True)
         val_dataloader = DataLoader(self.dm.dataset['validation'], batch_size= self.val_batch_size)
         # self.lr_finder(model, self.trainer, train_dataloader, val_dataloader)
-        
+    
         for param in model.parameters():
             param.requires_grad = True
         self.trainer.fit(
@@ -228,6 +228,7 @@ class CV_Problem_MultiObjTrain(Problem):
         parser.add_argument("--if_train",action='store_true')
         return parser
     def evaluate(self, chromosome: np.array):
+       
         print(chromosome)
         symbols, _, _ = self.replace_value_with_symbol(chromosome)
         print(f"CHROMOSOME: {symbols}")
