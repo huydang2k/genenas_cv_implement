@@ -32,7 +32,7 @@ class CV_Problem_MultiObjTrain(Problem):
         self.chromsome_logger = ChromosomeLogger()
         self.save_path = args.save_path
         self.progress_bar = 1
-        self.weights_summary = None
+        self.weights_summary = "top"
         self.early_stop = None
         self.k_folds = self.hparams.k_folds
         # self.weight_values = [0.5, 1, 2, 3]
@@ -198,6 +198,7 @@ class CV_Problem_MultiObjTrain(Problem):
         glue_pl.init_metric(self.dm.metric)
         glue_pl.init_model(mains, adfs,self.if_train)
         glue_pl.init_chromosome_logger(self.chromsome_logger)
+        print('model size: ' , CV_Problem_MultiObjTrain.total_params(glue_pl))
         return glue_pl
     
     
@@ -207,7 +208,7 @@ class CV_Problem_MultiObjTrain(Problem):
         train_dataloader = DataLoader(self.dm.dataset['train'], batch_size= self.train_batch_size, shuffle= True)
         val_dataloader = DataLoader(self.dm.dataset['validation'], batch_size= self.val_batch_size)
         # self.lr_finder(model, self.trainer, train_dataloader, val_dataloader)
-        
+    
         for param in model.parameters():
             param.requires_grad = True
         self.trainer.fit(
@@ -227,6 +228,7 @@ class CV_Problem_MultiObjTrain(Problem):
         parser.add_argument("--if_train",action='store_true')
         return parser
     def evaluate(self, chromosome: np.array):
+       
         print(chromosome)
         symbols, _, _ = self.replace_value_with_symbol(chromosome)
         print(f"CHROMOSOME: {symbols}")
