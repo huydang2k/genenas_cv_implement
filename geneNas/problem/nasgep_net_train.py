@@ -264,6 +264,7 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
             for param in nasgepcell_net.parameters():
                 param.requires_grad = False
         self.add_module("nasgepcell_net", nasgepcell_net)
+        
     def configure_optimizers(self):
         embed = self.embed
         model = self.nasgepcell_net
