@@ -404,7 +404,7 @@ class CV_DataModule_train(CV_DataModule):
                          pin_memory=pin_memory, 
                          **kwargs)
 
-    def setup(self, stage,input_size):
+    def setup(self, stage, input_size):
        
         self.input_size = input_size
         self.onehot = lambda x: one_hot_labels(x, self.num_labels)
