@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import models
+from sklearn.metrics import accuracy_score
 
 class RESNET(pl.LightningModule):
     def __init__(self,
@@ -26,13 +27,9 @@ class RESNET(pl.LightningModule):
         logits = self(batch[0]['feature_map'])
         labels = batch[1]['labels']
         onehot_labels = batch[1]['one_hot']
-        print(logits)
-        print(logits.shape, onehot_labels.shape)
         val_loss = F.cross_entropy(logits, onehot_labels)
-        if self.hparams.num_labels >= 1:
-            preds = torch.argmax(logits, dim=1)
-        elif self.hparams.num_labels == 1:
-            preds = logits.squeeze()
+        preds = torch.argmax(logits, dim=1)
+     
         return {"loss": val_loss, "preds": preds, "labels": labels}
     
     def training_step(self, batch, batch_idx):
@@ -48,11 +45,8 @@ class RESNET(pl.LightningModule):
         # self.print(np.unique(preds, return_counts=True))
         # self.print(np.unique(labels, return_counts=True))
         loss = torch.stack([x["loss"] for x in outputs]).mean()
-        self.log("val_loss", loss, prog_bar=True)
-        metrics = self.metric.compute(predictions=preds, references=labels)
-        self.log_dict(metrics, prog_bar=True)
-        log_data = {f"val_loss": loss, "metrics": metrics, "epoch": self.current_epoch}
-        self.chromosome_logger.log_epoch(log_data)
+        metrics = accuracy_score(labels, preds)
+        print(f'Epoch: {self.current_epoch} accuracy: {metrics}, loss: {loss}')
     
     def configure_optimizers(self):
         return torch.optim.Adam(
