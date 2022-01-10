@@ -173,9 +173,6 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
             preds = torch.argmax(logits, dim=1)
         elif self.hparams.num_labels == 1:
             preds = logits.squeeze()
-
-        # labels = batch["labels"]
-
         return {"loss": val_loss, "preds": preds, "labels": labels}
     
     def training_step(self, batch, batch_idx):

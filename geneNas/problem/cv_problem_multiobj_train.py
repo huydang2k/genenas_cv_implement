@@ -216,10 +216,7 @@ class CV_Problem_MultiObjTrain(Problem):
             train_dataloaders= train_dataloader,
             val_dataloaders= val_dataloader,
         )
-        # metrics = self.chromsome_logger.logs[-1]["data"][-1]["metrics"][
-        #             self.metric_name
-        # ]
-        
+  
     @staticmethod
     def add_train_arguments(parent_parser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
