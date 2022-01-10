@@ -95,7 +95,6 @@ class RESNET(pl.LightningModule):
         onehot_labels = batch[1]['one_hot']
         val_loss = F.cross_entropy(logits, onehot_labels)
         preds = torch.argmax(logits, dim=1)
-     
         return {"loss": val_loss, "preds": preds, "labels": labels}
     
     def training_step(self, batch, batch_idx):
@@ -113,7 +112,7 @@ class RESNET(pl.LightningModule):
     def training_epoch_end(self, outputs):
         if (self.current_epoch+1) % 20 == 0:
             self.lr /= 3
-            update_lr(self.optimizer, self.lr)
+            update_lr(self.trainer.optimizers[0], self.lr)
         preds = torch.cat([x["preds"] for x in outputs]).detach().cpu().numpy()
         labels = torch.cat([x["labels"] for x in outputs]).detach().cpu().numpy()
         loss = torch.stack([x["loss"] for x in outputs]).mean()
