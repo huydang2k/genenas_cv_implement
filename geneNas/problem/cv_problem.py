@@ -271,7 +271,7 @@ class CV_Problem_MultiObjNoTrain(Problem):
         avg_metrics = avg_metrics / self.k_folds
         avg_max_metrics = avg_max_metrics / self.k_folds
         print(
-            f"FOLD AVG: {self.metric_name} {avg_metrics} {avg_max_metrics} ; Time {total_time}"
+            f"FOLD AVG: {self.metric_name} {avg_metrics} {avg_max_metrics}; total params {CV_Problem_MultiObjNoTrain.total_params(model)} ; Time {total_time}"
         )
         return avg_metrics, avg_max_metrics
 
@@ -282,4 +282,4 @@ class CV_Problem_MultiObjNoTrain(Problem):
         print(f"CHROMOSOME: {symbols}")
         nasgep_model = self.setup_model(chromosome)
         avg_metrics, avg_max_metrics = self.perform_kfold(nasgep_model)
-        return avg_metrics, avg_max_metrics, CV_Problem_MultiObjNoTrain.total_params(nasgep_model)
+        return avg_metrics, avg_max_metrics

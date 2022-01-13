@@ -31,6 +31,7 @@ def input_chromosome(args):
     try:
         chromosome = chromosome.split()
         chromosome = [int(x) for x in chromosome]
+        
         return np.array(chromosome)
         
     except:
@@ -76,7 +77,6 @@ def main():
     problem = CV_Problem_MultiObjTrain(args= args)
     chromosome_ls = input_chromosome(args)
     #get the best chromosome
-    chromosome_ls = [chromosome_ls[19]]
     for chromosome in chromosome_ls:
         nasgep_net_train.chromosome_index += 1
         nasgep_net_train.run_loss[str(nasgep_net_train.chromosome_index)] = []

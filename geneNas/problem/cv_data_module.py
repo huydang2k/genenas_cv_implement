@@ -87,10 +87,11 @@ class CV_DataModule(pl.LightningDataModule):
 
     def convert_img(self, img):
         self.transform = transforms.Compose([
-            transforms.Resize(self.input_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
+            transforms.Pad(4),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomCrop(32),
+            transforms.ToTensor()]) 
+
         return {'feature_map': self.transform(img)}
 
     def setup(self, stage,input_size):
