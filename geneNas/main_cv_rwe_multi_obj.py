@@ -21,6 +21,7 @@ def parse_args():
     parser = NasgepNetRWE_multiObj.add_learning_specific_args(parser)
     parser = MultiObjectiveOptimizer.add_optimizer_specific_args(parser)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--lr", type= float, default= 0)
 
     args = parser.parse_args()
 

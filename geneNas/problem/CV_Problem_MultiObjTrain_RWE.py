@@ -13,7 +13,9 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import pytorch_lightning as pl
 from util.exception import NanException
 
-
+def update_lr(model, lr):    
+    print('new learning rate: ',lr)
+    model.lr = lr
 class CV_Problem_MultiObjTrain_RWE(Problem):
     def __init__(self, args):
         super().__init__(args)
@@ -178,26 +180,28 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
         #precalculate data
         self.dm.get_model(glue_pl)
         # self.dm.prepare_data()
-        self.dm.setup("fit")
+        self.dm.setup("fit", self.hparams.input_size)
         
         return glue_pl
     
     
 
-    def perform_kfold(self, model):
+    def perform_kfold(self, model: pl.LightningModule):
         
         avg_metrics = 0
         total_time = 0
         trainer = self.setup_trainer()
         # print('SET up trainer-------')
         _, train_dataloader, val_dataloader = next(self.dm.kfold(self.k_folds, None))
-  
-        self.lr_finder(model, trainer, train_dataloader, val_dataloader)
-
+        trainer = self.setup_trainer()
+        if self.hparams.lr == 0:
+            self.lr_finder(model, trainer, train_dataloader, val_dataloader)
+        else:
+            update_lr(model, self.hparams.lr)
         for fold, train_dataloader, val_dataloader in self.dm.kfold(self.k_folds, None):
             start = time.time()
             try:
-                trainer = self.setup_trainer()
+                
                 trainer.fit(
                     model,
                     train_dataloaders=train_dataloader,
@@ -216,11 +220,11 @@ class CV_Problem_MultiObjTrain_RWE(Problem):
             end = time.time()
             avg_metrics += metrics
             total_time += end - start
-            print(f"FOLD {fold}: {self.metric_name} {metrics} ; Time {end - start}")
+            print(f"{self.metric_name} {metrics} ; Time {end - start}")
 
-        avg_metrics = avg_metrics / self.k_folds
+        avg_metrics = avg_metrics
         total_params = model.total_params()
-        print(f"FOLD AVG: {self.metric_name} {avg_metrics}; Total_params: {total_params} ; Time {total_time}")
+        print(f"Total_params: {total_params} ; Time {total_time}")
         return avg_metrics, -total_params
 
     def evaluate(self, chromosome: np.array):

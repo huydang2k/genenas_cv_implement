@@ -22,14 +22,22 @@ from tqdm import tqdm
 import numpy as np
 
 
-def split_stratify(dataset: Dataset, test_size):
+def split_stratify(dataset: Dataset, test_size, valid_split= False):
+    if valid_split:
+        train_idx, valid_idx= train_test_split(
+        np.arange(dataset.__len__()),
+        test_size= test_size,
+        shuffle=True,
+        stratify= dataset.data['labels'])
+        return train_idx, valid_idx  
     _, valid_idx= train_test_split(
     np.arange(dataset.__len__()),
     test_size= test_size,
     shuffle=True,
     stratify= dataset.targets)
     return torch.utils.data.Subset(dataset, valid_idx)   
-        
+
+
 
 class CV_DataModule(pl.LightningDataModule):
     metrics_names = {
@@ -267,12 +275,12 @@ class CV_DataModule_RWE(CV_DataModule):
             print('Precalculating')
             start = time.time()
             self.dataset_ga['train'] = precalculated_dataset(self.dataset['train'], self.model, self.eval_batch_size, self.gpus)
-            self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size, self.gpus)
-
+            # self.dataset_ga['test'] = precalculated_dataset(self.dataset['test'], self.model, self.eval_batch_size, self.gpus)
+    
             end = time.time()
             print('Finish precalculating, Time: ', end - start)
             self.dataset['validation'] = copy.deepcopy(self.dataset['test'])
-            self.dataset_ga['validation'] = copy.deepcopy(self.dataset_ga['test'])
+            # self.dataset_ga['validation'] = copy.deepcopy(self.dataset_ga['test'])
         else:
             self.onehot = lambda x: one_hot_labels(x, self.num_labels)
             print('not cache')
@@ -305,15 +313,16 @@ class CV_DataModule_RWE(CV_DataModule):
     def kfold(self, k_folds=10, seed=420):
         kfold = KFold(n_splits=k_folds, shuffle=True, random_state=seed)
         # K-fold Cross Validation model evaluation
-        for fold, (train_ids, val_ids) in enumerate(kfold.split(self.dataset_ga['train'])):
-            train_ids = train_ids.tolist()
-            val_ids = val_ids.tolist()
+        fold = 0 
+        train_ids, val_ids = split_stratify(self.dataset_ga['train'], 0.1, True)
+        train_ids = train_ids.tolist()
+        val_ids = val_ids.tolist()
 
-            train_subsampler = SubsetRandomSampler(train_ids)
-            val_subsampler = SubsetRandomSampler(val_ids)
+        train_subsampler = SubsetRandomSampler(train_ids)
+        val_subsampler = SubsetRandomSampler(val_ids)
 
-            yield fold, DataLoader(
-                self.dataset_ga['train'],
+        yield fold, DataLoader(
+            self.dataset_ga['train'],
                 batch_size=self.train_batch_size,
                 sampler=train_subsampler,
                 num_workers=self.num_workers,
