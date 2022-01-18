@@ -57,7 +57,7 @@ def main():
     for i, idv in enumerate(population):
         symbols, _, _ = problem.replace_value_with_symbol(population[i])
         print(f"Individual {i + 1}: {objs[i]}, chromosome: {symbols}")
-        problem.make_graph(idv, prefix=f"{args.task_name}.idv_{i+1}")
+        # problem.make_graph(idv, prefix=f"{args.task_name}.idv_{i+1}")
 
     # build and save model
     # lb, ub = problem.get_bounds()

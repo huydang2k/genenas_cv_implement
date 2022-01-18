@@ -77,13 +77,15 @@ class Optimizer:
 
     @staticmethod
     def save_checkpoint(num_generation, population, fitness, save_dict_path):
+        print("hallo")
         save_dict = {
             "num_generation": num_generation,
             "population": population,
             "fitness": fitness,
         }
-        with open(save_dict_path, "wb") as f:
+        with open(save_dict_path, "wb+") as f:
             pickle.dump(save_dict, f)
+            print('yeah')
 
     @staticmethod
     def load_checkpoint(save_dict_path):

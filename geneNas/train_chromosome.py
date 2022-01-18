@@ -13,29 +13,15 @@ today = datetime.today().strftime("%Y-%m-%d")
 # run_accuracy = {}
 # chromosome_index = -1
 def input_chromosome(args):
-    try:
         with open(args.checkpoint_population_file,'rb') as f:
             d = pickle.load(f)
-            fitness = [i[2] for i in d['fitness']]
-            # best_indicies = np.argsort(fitness)
-            return np.array(d['population'])
-            
-    except:
-        print('Read from txt fle')
-    try:
-        with open(args.file_name, 'rb') as f:
-            chromosome = pickle.load(f)        
-    except:
-        with open(path + args.file_name, 'r') as f:
-            chromosome = f.read()
-    try:
-        chromosome = chromosome.split()
-        chromosome = [int(x) for x in chromosome]
-        
-        return np.array(chromosome)
-        
-    except:
-        return np.array(chromosome)
+            fitness = np.array([-i[0] for i in d['fitness']])
+            best_indicies = np.argsort(fitness)
+            x = np.array(d['population'])[best_indicies]
+            print(d['population'])
+            # print(best_indicies)
+            print(fitness[best_indicies])
+            return x
 
 
     
