@@ -287,7 +287,9 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
             loss += output['loss'].to(torch.device('cpu'))
         run_loss[str(chromosome_index)].append(loss/total_lenght)
         run_accuracy[str(chromosome_index)].append(acc/total_lenght)
-        # return super().training_epoch_end(outputs)()
+    
+    def total_params(self):
+        return sum(p.numel() for p in self.nasgep_cell_net.parameters() if p.requires_grad)
     
     def init_model(self, cells, adfs,if_train = False):
         nasgep_cell_net = NasgepCellNet(

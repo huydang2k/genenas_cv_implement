@@ -176,7 +176,6 @@ class CV_Problem_MultiObjTrain(Problem):
             self.hparams,
             progress_bar_refresh_rate=self.progress_bar,
             # automatic_optimization=False,
-            weights_summary=self.weights_summary,
             checkpoint_callback=False,
             callbacks=early_stop,
             max_epochs = self.hparams.max_epochs,
