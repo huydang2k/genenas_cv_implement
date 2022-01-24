@@ -1,5 +1,5 @@
 #Implement search strategy
-from .nasgep_net_train import NasgepNetRWE_multiObj, NasgepNet_multiObj
+from .nasgep_net_train import  NasgepNet_multiObj
 from .abstract_problem import Problem
 from .function_set import CV_Main_FunctionSet, CV_ADF_FunctionSet
 from typing import List, Tuple
@@ -216,6 +216,13 @@ class CV_Problem_MultiObjTrain(Problem):
             train_dataloaders= train_dataloader,
             val_dataloaders= val_dataloader,
         )
+        metrics = self.chromsome_logger.logs[-1]["data"][-1]["metrics"][
+                    self.metric_name
+        ]
+        print(f"{self.metric_name} {metrics}")
+        total_params = model.total_params()
+        print(f"Total_params: {total_params}")
+        return metrics, total_params
   
     @staticmethod
     def add_train_arguments(parent_parser):
@@ -231,8 +238,9 @@ class CV_Problem_MultiObjTrain(Problem):
         print(f"CHROMOSOME: {symbols}")
         print('Set up model')
         glue_pl = self.setup_model(chromosome)
-        self.train(glue_pl)
-        print(self.save_path)
-        self.trainer.save_checkpoint(self.save_path,weights_only = True)
-
+        metrics, params = self.train(glue_pl)
+        if self.save_path:
+            self.trainer.save_checkpoint(self.save_path,weights_only = True)
+        return metrics, params
+        
     

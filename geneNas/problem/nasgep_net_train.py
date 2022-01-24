@@ -18,7 +18,7 @@ run_loss = {}
 run_accuracy = {}
 
 def update_lr(optimizer, lr):    
-    print('new learning rate: ',lr)
+    print(' new learning rate: ',lr)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     
@@ -63,20 +63,17 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
         )
     
     def init_model(self, cells, adfs,if_train = False):
-        nasgepcell_net = NasgepCellNet(
+        nasgep_cell_net = NasgepCellNet(
             cells,
             adfs,
             self.hidden_shape,
             self.N
         )
         if not if_train:
-            for param in nasgepcell_net.parameters():
+            for param in nasgep_cell_net.parameters():
                 param.requires_grad = False
        
-        self.add_module("nasgep_cell_net", nasgepcell_net)
-    
-    def total_params(self):
-        return sum(p.numel() for p in self.nasgep_cell_net.parameters())
+        self.add_module("nasgep_cell_net", nasgep_cell_net)
     
     def forward(self, feature_map, mode = 'validate'):
         if mode == 'inference':            
@@ -205,7 +202,7 @@ class NasgepNetRWE_multiObj(pl.LightningModule):
         # No multiple eval_splits
         # Looking at you MNLI
         if (self.current_epoch+1) % 15 == 0:
-            self.lr /= 3
+            self.lr /= 1.4
             update_lr(self.trainer.optimizers[0], self.lr)
         preds = torch.cat([x["preds"] for x in outputs]).detach().cpu().numpy()
         labels = torch.cat([x["labels"] for x in outputs]).detach().cpu().numpy()
@@ -279,7 +276,9 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
         global run_loss
         global run_accuracy
         global chromosome_index
-      
+        if (self.current_epoch + 1) % 15 == 0:
+            self.lr /= 1.4
+            update_lr(self.trainer.optimizers[0], self.lr)
         total_lenght = len(outputs)
         acc = 0.0
         loss = 0.0
@@ -289,23 +288,23 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
         run_loss[str(chromosome_index)].append(loss/total_lenght)
         run_accuracy[str(chromosome_index)].append(acc/total_lenght)
         # return super().training_epoch_end(outputs)()
-        
+    
     def init_model(self, cells, adfs,if_train = False):
-        nasgepcell_net = NasgepCellNet(
+        nasgep_cell_net = NasgepCellNet(
             cells,
             adfs,
             self.hidden_shape,
             self.N
         )
-        self.add_module("nasgepcell_net", nasgepcell_net)
+        self.add_module("nasgep_cell_net", nasgep_cell_net)
         if not if_train:
-            for param in nasgepcell_net.parameters():
+            for param in nasgep_cell_net.parameters():
                 param.requires_grad = False
-        self.add_module("nasgepcell_net", nasgepcell_net)
+        self.add_module("nasgep_cell_net", nasgep_cell_net)
         
     def configure_optimizers(self):
         embed = self.embed
-        model = self.nasgepcell_net
+        model = self.nasgep_cell_net
         cls = self.cls_head
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
@@ -371,7 +370,7 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
     
     def forward(self, feature_map):
         x = self.embed(feature_map)
-        x = self.nasgepcell_net(x)
+        x = self.nasgep_cell_net(x)
         x = self.cls_head(x)
         return x
     
