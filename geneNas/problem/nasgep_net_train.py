@@ -388,13 +388,15 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
         loss = torch.stack([x["loss"] for x in outputs]).mean()
         self.log("val_loss", loss, prog_bar=True)
         metrics = self.metric.compute(predictions=preds, references=labels)
+        metrics['val_accuracy'] = metrics['accuracy']
+        
         self.log_dict(metrics, prog_bar=True)
         log_data = {f"val_loss": loss, "metrics": metrics, "epoch": self.current_epoch}
         self.chromosome_logger.log_epoch(log_data)
         #hardcode 
         acc = metrics['accuracy']
         
-        print(f'epoch: {self.current_epoch}, val_loss: {loss}, accuracy: {acc} ')
+        print(f'epoch: {self.current_epoch}, val_loss: {loss}, val_accuracy: {acc} ')
     
     def training_epoch_end(self, outputs):
         # No multiple eval_splits
@@ -410,7 +412,6 @@ class NasgepNet_multiObj(NasgepNetRWE_multiObj):
         metrics = self.metric.compute(predictions=preds, references=labels)
         self.log_dict(metrics, prog_bar=True)
         log_data = {f"train_loss": loss, "metrics": metrics, "epoch": self.current_epoch}
-        self.chromosome_logger.log_epoch(log_data)
         #hardcode 
         acc = metrics['accuracy']
         
